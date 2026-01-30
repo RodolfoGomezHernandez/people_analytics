@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard | Aurora Australis{% endblock %}
+{% block header_title %}Resumen Ejecutivo{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
+        <p class="text-xs font-bold text-slate-400 uppercase">Dotación Real</p>
+        <h3 class="text-2xl font-bold text-slate-800 mt-1">2.280</h3>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
+        <p class="text-xs font-bold text-slate-400 uppercase">Productividad</p>
+        <h3 class="text-2xl font-bold text-slate-800 mt-1">94.2%</h3>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500">
+        <p class="text-xs font-bold text-slate-400 uppercase">Anomalías Hoy</p>
+        <h3 class="text-2xl font-bold text-slate-800 mt-1">12</h3>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-500">
+        <p class="text-xs font-bold text-slate-400 uppercase">Evaluados</p>
+        <h3 class="text-2xl font-bold text-slate-800 mt-1">85%</h3>
+    </div>
+</div>
+
+<div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h3 class="text-lg font-bold text-slate-800">Carga de Datos de Grex</h3>
+            <p class="text-sm text-slate-500">Sube tus archivos .xlsx para actualizar los KPIs del sistema.</p>
+        </div>
+        <i class="fa-solid fa-file-import text-3xl text-slate-200"></i>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <button class="p-4 border-2 border-dashed border-slate-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition text-left group">
+            <span class="block font-bold text-slate-700 group-hover:text-blue-600">Importar Asistencia</span>
+            <span class="text-xs text-slate-400">Formato: Marcajes_Diarios.xlsx</span>
+        </button>
+        <button class="p-4 border-2 border-dashed border-slate-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition text-left group">
+            <span class="block font-bold text-slate-700 group-hover:text-purple-600">Importar Evaluaciones</span>
+            <span class="text-xs text-slate-400">Formato: Matriz_Desempeño.xlsx</span>
+        </button>
+    </div>
+</div>
+{% endblock %}  
