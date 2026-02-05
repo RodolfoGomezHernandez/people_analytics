@@ -1,46 +1,75 @@
 {% extends 'base.html' %}
 
-{% block title %}Dashboard | Aurora Australis{% endblock %}
-{% block header_title %}Resumen Ejecutivo{% endblock %}
-
 {% block content %}
-<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
-        <p class="text-xs font-bold text-slate-400 uppercase">Dotación Real</p>
-        <h3 class="text-2xl font-bold text-slate-800 mt-1">2.280</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div class="bg-blue-900 text-white p-6 rounded-xl shadow-lg">
+        <p class="text-xs opacity-70 uppercase font-bold">Colaboradores</p>
+        <h2 class="text-4xl font-bold mt-2">{{ total_db }}</h2>
     </div>
-    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
-        <p class="text-xs font-bold text-slate-400 uppercase">Productividad</p>
-        <h3 class="text-2xl font-bold text-slate-800 mt-1">94.2%</h3>
-    </div>
-    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500">
-        <p class="text-xs font-bold text-slate-400 uppercase">Anomalías Hoy</p>
-        <h3 class="text-2xl font-bold text-slate-800 mt-1">12</h3>
-    </div>
-    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-500">
-        <p class="text-xs font-bold text-slate-400 uppercase">Evaluados</p>
-        <h3 class="text-2xl font-bold text-slate-800 mt-1">85%</h3>
+    <div class="bg-indigo-900 text-white p-6 rounded-xl shadow-lg">
+        <p class="text-xs opacity-70 uppercase font-bold">Marcajes Totales</p>
+        <h2 class="text-4xl font-bold mt-2">{{ total_marcajes }}</h2>
     </div>
 </div>
 
-<div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h3 class="text-lg font-bold text-slate-800">Carga de Datos de Grex</h3>
-            <p class="text-sm text-slate-500">Sube tus archivos .xlsx para actualizar los KPIs del sistema.</p>
-        </div>
-        <i class="fa-solid fa-file-import text-3xl text-slate-200"></i>
-    </div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
     
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <button class="p-4 border-2 border-dashed border-slate-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition text-left group">
-            <span class="block font-bold text-slate-700 group-hover:text-blue-600">Importar Asistencia</span>
-            <span class="text-xs text-slate-400">Formato: Marcajes_Diarios.xlsx</span>
-        </button>
-        <button class="p-4 border-2 border-dashed border-slate-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition text-left group">
-            <span class="block font-bold text-slate-700 group-hover:text-purple-600">Importar Evaluaciones</span>
-            <span class="text-xs text-slate-400">Formato: Matriz_Desempeño.xlsx</span>
-        </button>
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="bg-blue-100 p-2 rounded text-blue-600"><i class="fa-solid fa-user-group"></i></div>
+            <h3 class="font-bold text-slate-800">1. Cargar Fichas (Maestro)</h3>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            <div class="text-sm text-slate-500">Sube el "Reporte de Fichas" para crear o actualizar empleados.</div>
+            {{ form_fichas.archivo }}
+            <button type="submit" name="btn_fichas" class="w-full bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700 transition">
+                Procesar Fichas
+            </button>
+        </form>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="bg-indigo-100 p-2 rounded text-indigo-600"><i class="fa-solid fa-clock"></i></div>
+            <h3 class="font-bold text-slate-800">2. Cargar Estadía (Asistencia)</h3>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            <div class="text-sm text-slate-500">Sube el "Reporte Estadía" para registrar entradas y salidas.</div>
+            {{ form_asistencia.archivo_asistencia }}
+            <button type="submit" name="btn_asistencia" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700 transition">
+                Procesar Asistencia
+            </button>
+        </form>
+    </div>
+
+</div>
+
+<div id="loading-overlay" class="fixed inset-0 bg-slate-900 bg-opacity-70 z-50 hidden flex flex-col items-center justify-center backdrop-blur-sm transition-all duration-300">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm text-center transform scale-100 animate-bounce-slow">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
+        
+        <h3 class="text-xl font-bold text-slate-800 mb-2">Procesando Datos...</h3>
+        <p class="text-slate-500 text-sm">Estamos cruzando la información de Grex con la base de datos. Por favor no cierres esta ventana.</p>
     </div>
 </div>
-{% endblock %}  
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Seleccionamos todos los formularios de la página
+        const forms = document.querySelectorAll('form');
+        const loader = document.getElementById('loading-overlay');
+
+        forms.forEach(form => {
+            form.addEventListener('submit', function(event) {
+                // Solo mostramos la carga si el formulario es válido (HTML5 check)
+                if (form.checkValidity()) {
+                    loader.classList.remove('hidden'); // Mostrar overlay
+                    loader.classList.add('flex');      // Asegurar display flex
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

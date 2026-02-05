@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Solicitar Dotación | Aurora HR{% endblock %}
+{% block header_title %}Nueva Solicitud de Personal{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-xl shadow-lg border border-slate-100 p-8">
+        
+        <div class="mb-6 border-b pb-4">
+            <h2 class="text-xl font-bold text-slate-800">Formulario de Requerimiento</h2>
+            <p class="text-slate-500 text-sm">Complete los datos para iniciar el proceso de búsqueda.</p>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Área Solicitante</label>
+                    {{ form.area }}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Cargo Requerido</label>
+                    {{ form.cargo }}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Cantidad de Personas</label>
+                    {{ form.cantidad }}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Fecha de Ingreso Ideal</label>
+                    {{ form.fecha_necesidad }}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">Motivo / Observaciones</label>
+                {{ form.motivo }}
+                <p class="text-xs text-slate-400 mt-1">Especifique si es reemplazo (indicar nombre) o aumento de dotación.</p>
+            </div>
+
+            <div class="flex items-center justify-end gap-4 pt-4">
+                <a href="{% url 'dashboard' %}" class="text-slate-500 hover:text-slate-700 font-medium">Cancelar</a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition shadow-md flex items-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i> Enviar Solicitud
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

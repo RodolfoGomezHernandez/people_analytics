@@ -1,0 +1,19 @@
+# .gitignore
+# Python y Venv
+__pycache__/
+*.py[cod]
+venv/
+env/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+
+# IDEs
+.vscode/
+.idea/
+
+# Variables de entorno (Futuro)
+.env
