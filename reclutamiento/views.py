@@ -9,6 +9,7 @@ from django.http import HttpResponse
 from django.core.files.base import ContentFile
 from django.views.decorators.csrf import csrf_exempt
 from twilio.twiml.messaging_response import MessagingResponse
+from core.decorators import group_required
 
 from .forms import SolicitudDotacionForm
 from .models import Candidato
@@ -78,6 +79,7 @@ def guardar_imagen_twilio(url_imagen, nombre_archivo):
 # ==========================================
 
 @login_required
+@group_required('Reclutamiento')
 def crear_solicitud(request):
     if request.method == 'POST':
         form = SolicitudDotacionForm(request.POST)
