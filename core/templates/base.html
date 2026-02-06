@@ -1,3 +1,5 @@
+{% load static %}
+{% load auth_extras %} 
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -8,33 +10,67 @@
 </head>
 <body class="bg-slate-100 font-sans">
     <div class="flex h-screen">
+        
         <aside class="w-64 bg-slate-900 text-white flex flex-col shadow-xl">
             <div class="p-6 border-b border-slate-800">
                 <h1 class="text-xl font-bold tracking-wider">AURORA <span class="text-blue-400">HR</span></h1>
                 <p class="text-[10px] text-slate-400 uppercase mt-1">Personas y Organización</p>
             </div>
+
             <nav class="flex-1 p-4 space-y-2">
-                <a href="{% url 'dashboard' %}" class="flex items-center gap-3 p-3 rounded-lg bg-blue-600 text-white">
+                
+                <a href="{% url 'dashboard' %}" class="flex items-center gap-3 p-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
                     <i class="fa-solid fa-gauge"></i> Dashboard
                 </a>
-                <a href="#" class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 transition">
-                    <i class="fa-solid fa-users"></i> Dotación
-                </a>
-                <a href="{% url 'reportes' %}" class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 transition">
-                    <i class="fa-solid fa-chart-pie"></i> Reportes & Anomalías
-                </a>
-                <div class="mt-8">
-                    <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Gestión de Talento</p>
-                    <a href="{% url 'crear_solicitud' %}" class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
-                        <i class="fa-solid fa-user-plus"></i> Solicitar Personal
+
+                {% if request.user|has_group:"Dotacion" %}
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-users"></i> Dotación
                     </a>
+                {% endif %}
+                
+                {% if request.user|has_group:"Capacitacion" %}
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-chalkboard-user"></i> Capacitación
+                    </a>
+                {% endif %}
+
+                {% if request.user|has_group:"Compensacion" %}
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-wallet"></i> Compensación
+                    </a>
+                {% endif %}
+                
+                {% if request.user|has_group:"Analistas" %}
+                    <a href="{% url 'reportes' %}" class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-chart-pie"></i> Reportes & Anomalías
+                    </a>
+                {% endif %}
+
+                <div class="mt-8">
+                    {% if request.user|has_group:"Reclutamiento" %}
+                        <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Gestión de Talento</p>
+                        <a href="{% url 'crear_solicitud' %}" class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                            <i class="fa-solid fa-user-plus"></i> Solicitar Personal
+                        </a>
+                    {% endif %}
                 </div>
-                <a href="#" class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 transition">
-                    <i class="fa-solid fa-star"></i> Desempeño
-                </a>
+
+                {% if request.user|has_group:"Desempeño" %}
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-star"></i> Desempeño
+                    </a>
+                {% endif %}
+                
             </nav>
-            <div class="p-4 border-t border-slate-800 text-xs text-slate-500">
-                Usuario: {{ user.username }} | <a href="{% url 'logout' %}" class="text-red-400">Salir</a>
+            
+            <div class="p-4 border-t border-slate-800">
+                <form action="{% url 'logout' %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-red-900/30 hover:text-red-400 transition text-left">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i> Salir del Sistema
+                    </button> 
+                </form>
             </div>
         </aside>
 
@@ -42,11 +78,19 @@
             <header class="h-16 bg-white shadow-sm flex items-center justify-between px-8">
                 <h2 class="text-lg font-semibold text-slate-700">{% block header_title %}Panel Principal{% endblock %}</h2>
                 <div class="flex items-center gap-4">
-                    <span class="text-sm text-slate-500">Temporada 2025-2026</span>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-slate-700">{{ request.user.get_full_name|default:request.user.username }}</p>
+                        <span class="text-xs text-slate-500">Temporada 2025-2026</span>
+                    </div>
+                    <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                        {{ request.user.username|make_list|first|upper }}
+                    </div>
                 </div>
             </header>
+
             <section class="flex-1 overflow-y-auto p-8">
-                {% block content %}{% endblock %}
+                {% block content %}
+                {% endblock %}
             </section>
         </main>
     </div>
