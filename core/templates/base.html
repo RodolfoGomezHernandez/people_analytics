@@ -104,8 +104,9 @@
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col overflow-hidden">
-            <header class="h-16 bg-white shadow-sm flex items-center justify-between px-8">
+        <main class="flex-1 flex flex-col overflow-hidden relative">
+            
+            <header class="h-16 bg-white shadow-sm flex items-center justify-between px-8 z-40 relative">
                 <h2 class="text-lg font-semibold text-slate-700">{% block header_title %}Panel Principal{% endblock %}</h2>
                 <div class="flex items-center gap-4">
                     <div class="text-right">
@@ -118,7 +119,49 @@
                 </div>
             </header>
 
-            <section class="flex-1 overflow-y-auto p-8">
+            {% if messages %}
+            <div id="message-container" class="fixed top-20 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none">
+                {% for message in messages %}
+                <div class="message-toast pointer-events-auto transform transition-all duration-500 ease-in-out translate-x-0 opacity-100 flex items-center p-4 text-sm rounded-lg shadow-xl border-l-4 bg-white
+                    {% if message.tags == 'success' %} border-green-500 text-green-800 {% elif message.tags == 'error' %} border-red-500 text-red-800 {% else %} border-blue-500 text-blue-800 {% endif %}" 
+                    role="alert">
+                    
+                    <div class="mr-3 text-lg">
+                        {% if message.tags == 'success' %} <i class="fa-solid fa-circle-check text-green-500"></i>
+                        {% elif message.tags == 'error' %} <i class="fa-solid fa-circle-exclamation text-red-500"></i>
+                        {% else %} <i class="fa-solid fa-circle-info text-blue-500"></i>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="font-medium flex-1">
+                        {{ message }}
+                    </div>
+
+                    <button type="button" class="ml-3 text-slate-400 hover:text-slate-900" onclick="this.parentElement.remove()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+
+            <script>
+                // Auto-eliminación de mensajes
+                document.addEventListener('DOMContentLoaded', function() {
+                    const toasts = document.querySelectorAll('.message-toast');
+                    toasts.forEach(msg => {
+                        setTimeout(() => {
+                            // 1. Desvanecer
+                            msg.classList.remove('translate-x-0', 'opacity-100');
+                            msg.classList.add('translate-x-full', 'opacity-0');
+                            // 2. Eliminar del DOM
+                            setTimeout(() => msg.remove(), 500);
+                        }, 4000); // 4 segundos de espera
+                    });
+                });
+            </script>
+            {% endif %}
+
+            <section class="flex-1 overflow-y-auto p-8 bg-slate-100">    
                 {% block content %}
                 {% endblock %}
             </section>

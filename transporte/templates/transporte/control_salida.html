@@ -1,7 +1,12 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto mt-10">
+<div class="max-w-4xl mx-auto mt-10 relative"> {% if request.user.is_superuser %}
+    <a href="{% url 'dashboard_transporte' %}" class="absolute -top-12 right-0 bg-slate-200 text-slate-700 hover:bg-slate-300 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition shadow-sm">
+        <i class="fa-solid fa-arrow-left"></i> Volver al Dashboard
+    </a>
+    {% endif %}
+
     <div class="bg-slate-900 text-white p-6 rounded-t-xl flex justify-between items-center shadow-lg">
         <div>
             <h2 class="text-2xl font-bold text-yellow-400"><i class="fa-solid fa-tower-observation"></i> Control de Garita</h2>
@@ -14,6 +19,15 @@
     </div>
 
     <div class="bg-white p-8 rounded-b-xl shadow-xl border border-slate-200">
+        
+        {% if messages %}
+            {% for message in messages %}
+            <div class="mb-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded shadow-sm flex items-center gap-3">
+                <i class="fa-solid fa-circle-check"></i> {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+
         <form method="post">
             {% csrf_token %}
             

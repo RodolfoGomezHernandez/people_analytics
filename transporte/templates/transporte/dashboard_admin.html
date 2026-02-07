@@ -11,14 +11,18 @@
             </div>
             
             <div class="flex flex-wrap gap-2 justify-center xl:justify-end">
-                <a href="{% url 'crear_vehiculo' %}" class="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-50 text-sm flex items-center gap-2">
+                <a href="{% url 'control_salida' %}" class="bg-slate-800 text-yellow-400 border border-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-700 text-sm flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-tower-observation"></i> Ir a Garita
+                </a>
+
+                <div class="h-8 w-px bg-slate-300 mx-2 hidden md:block"></div> <a href="{% url 'crear_vehiculo' %}" class="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-50 text-sm flex items-center gap-2">
                     <i class="fa-solid fa-bus"></i> + Vehículo
                 </a>
                 <a href="{% url 'crear_conductor' %}" class="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-50 text-sm flex items-center gap-2">
                     <i class="fa-solid fa-id-card"></i> + Conductor
                 </a>
                 <a href="{% url 'gestion_rutas' %}" class="bg-blue-50 text-blue-700 border border-blue-200 px-4 py-2 rounded-lg font-bold hover:bg-blue-100 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-map-location-dot"></i> Gestionar Rutas
+                    <i class="fa-solid fa-map-location-dot"></i> Rutas
                 </a>
                 <a href="{% url 'exportar_excel_transporte' %}" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 text-sm flex items-center gap-2 shadow-lg shadow-green-600/20">
                     <i class="fa-solid fa-file-excel"></i> Excel
@@ -37,7 +41,7 @@
             </div>
             <div>
                 <button onclick="cargarGraficos()" class="w-full bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700 transition flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-filter"></i> Aplicar Filtros
+                    <i class="fa-solid fa-filter"></i> Actualizar Gráficos
                 </button>
             </div>
             <div class="text-center border-l border-slate-200 pl-4">
@@ -50,39 +54,39 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
-            <h3 class="font-bold text-slate-700 mb-4 text-sm uppercase">Evolución de Costos Mensuales</h3>
+            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Evolución de Costos Mensuales</h3>
             <div class="h-64 relative"><canvas id="chartCurvaCostos"></canvas></div>
         </div>
 
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h3 class="font-bold text-slate-700 mb-4 text-sm uppercase">Gasto por Tipo de Vehículo</h3>
+            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Gasto por Tipo de Vehículo</h3>
             <div class="h-64 relative"><canvas id="chartCostoTipo"></canvas></div>
         </div>
 
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h3 class="font-bold text-slate-700 mb-4 text-sm uppercase">% Ocupación (Por Patente)</h3>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
+            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">% Ocupación (Ranking por Patente)</h3>
             <div class="h-64 relative"><canvas id="chartOcupacionVehiculo"></canvas></div>
         </div>
 
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h3 class="font-bold text-slate-700 mb-4 text-sm uppercase">% Ocupación Promedio (Por Tipo)</h3>
+            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">% Ocupación Promedio (Por Tipo)</h3>
             <div class="h-64 relative"><canvas id="chartOcupacionTipo"></canvas></div>
         </div>
 
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h3 class="font-bold text-slate-700 mb-4 text-sm uppercase">Costo por Pasajero (Por Patente)</h3>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
+            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Costo por Pasajero (Por Patente)</h3>
             <div class="h-64 relative"><canvas id="chartCppVehiculo"></canvas></div>
         </div>
 
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h3 class="font-bold text-slate-700 mb-4 text-sm uppercase">Costo por Pasajero (Por Tipo)</h3>
+            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Costo por Pasajero (Por Tipo)</h3>
             <div class="h-64 relative"><canvas id="chartCppTipo"></canvas></div>
         </div>
 
     </div>
     
     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <h3 class="font-bold text-slate-700 mb-4">Últimos Registros (Click en el lápiz para editar tarifas)</h3>
+        <h3 class="font-bold text-slate-700 mb-4">Últimos Registros</h3>
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-left">
                 <thead class="bg-slate-50 text-slate-500">
@@ -119,7 +123,12 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+
 <script>
+// Registramos el plugin
+Chart.register(ChartDataLabels);
+
 let charts = {}; 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -130,23 +139,24 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function cargarGraficos() {
+    // ... (Tu función cargarGraficos sigue igual) ...
     const inicio = document.getElementById('fechaInicio').value;
     const fin = document.getElementById('fechaFin').value;
-    
     const response = await fetch(`{% url 'api_datos_transporte' %}?inicio=${inicio}&fin=${fin}`);
     const data = await response.json();
 
     document.getElementById('kpiCppGeneral').innerText = `$ ${data.cpp_general}`;
 
-    crearChart('chartCurvaCostos', 'line', data.curva_costos.map(x => x.mes), data.curva_costos.map(x => x.total), 'Costo', '#2563eb');
-    crearChart('chartCostoTipo', 'doughnut', data.costo_tipo.map(x => x.vehiculo__tipo), data.costo_tipo.map(x => x.total_costo), 'Costo');
-    crearChart('chartOcupacionVehiculo', 'bar', data.ocupacion_vehiculo.map(x => x.vehiculo__patente), data.ocupacion_vehiculo.map(x => x.avg_ocupacion), '% Ocup', '#f59e0b');
-    crearChart('chartOcupacionTipo', 'bar', data.ocupacion_tipo.map(x => x.vehiculo__tipo), data.ocupacion_tipo.map(x => x.avg_ocupacion), '% Ocup', '#10b981');
-    crearChart('chartCppVehiculo', 'bar', data.cpp_vehiculo.map(x => x.label), data.cpp_vehiculo.map(x => x.value), 'CPP $', '#ef4444');
-    crearChart('chartCppTipo', 'bar', data.cpp_tipo.map(x => x.label), data.cpp_tipo.map(x => x.value), 'CPP $', '#8b5cf6');
+    // LLAMADAS A CREAR CHART (Igual que antes)
+    crearChart('chartCurvaCostos', 'line', data.curva_costos.map(x => x.mes), data.curva_costos.map(x => x.total), 'Costo', '#2563eb', '$');
+    crearChart('chartCostoTipo', 'doughnut', data.costo_tipo.map(x => x.vehiculo__tipo), data.costo_tipo.map(x => x.total_costo), 'Costo', null, '$');
+    crearChart('chartOcupacionVehiculo', 'bar', data.ocupacion_vehiculo.map(x => x.vehiculo__patente), data.ocupacion_vehiculo.map(x => x.avg_ocupacion), '% Ocup', '#f59e0b', '%', true);
+    crearChart('chartOcupacionTipo', 'bar', data.ocupacion_tipo.map(x => x.vehiculo__tipo), data.ocupacion_tipo.map(x => x.avg_ocupacion), '% Ocup', '#10b981', '%');
+    crearChart('chartCppVehiculo', 'bar', data.cpp_vehiculo.map(x => x.label), data.cpp_vehiculo.map(x => x.value), 'CPP $', '#ef4444', '$');
+    crearChart('chartCppTipo', 'bar', data.cpp_tipo.map(x => x.label), data.cpp_tipo.map(x => x.value), 'CPP $', '#8b5cf6', '$');
 }
 
-function crearChart(canvasId, type, labels, dataPoints, labelDataset, colorTheme) {
+function crearChart(canvasId, type, labels, dataPoints, labelDataset, colorTheme, unit = '', horizontal = false) {
     const ctx = document.getElementById(canvasId).getContext('2d');
     if (charts[canvasId]) charts[canvasId].destroy();
 
@@ -167,10 +177,37 @@ function crearChart(canvasId, type, labels, dataPoints, labelDataset, colorTheme
             }]
         },
         options: {
+            indexAxis: horizontal ? 'y' : 'x',
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: type === 'doughnut' } },
-            scales: type === 'doughnut' ? {} : { y: { beginAtZero: true } }
+            plugins: { 
+                legend: { display: type === 'doughnut' }, // Solo la torta tiene leyenda
+                tooltip: { enabled: true },
+                datalabels: {
+                    // AQUÍ ESTÁ EL CAMBIO: Si es doughnut, ocultamos los números (display: false)
+                    display: type !== 'doughnut', 
+                    color: type === 'line' ? colorTheme : '#333',
+                    anchor: horizontal ? 'end' : 'end', 
+                    align: horizontal ? 'right' : 'top',
+                    offset: 4,
+                    font: { weight: 'bold', size: 10 },
+                    formatter: function(value) {
+                        if (unit === '$') return '$' + new Intl.NumberFormat('es-CL').format(value);
+                        if (unit === '%') return Math.round(value) + '%';
+                        return value;
+                    }
+                }
+            },
+            layout: {
+                padding: {
+                    top: 20,
+                    right: horizontal ? 40 : 0
+                }
+            },
+            scales: type === 'doughnut' ? {} : { 
+                y: { beginAtZero: true, grid: { display: true, borderDash: [2, 2] } },
+                x: { grid: { display: false } }
+            }
         }
     });
 }
