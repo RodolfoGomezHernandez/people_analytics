@@ -1,6 +1,7 @@
 from django import forms
 from .models import Vehiculo, Conductor, RegistroSalida
 from core.validators import validar_rut 
+from .models import Vehiculo, Conductor, RegistroSalida, Ruta
 
 # --- MIXIN DE ESTILOS Y VALIDACIÓN BASE ---
 class EstiloFormMixin:
@@ -116,3 +117,13 @@ class EdicionAdminForm(EstiloFormMixin, forms.ModelForm):
             self.fields['valor_viaje'].widget.attrs.update({
                 'class': 'w-full px-4 py-2 border border-yellow-400 bg-yellow-50 rounded-lg font-bold text-slate-700'
             })
+
+
+class RutaForm(EstiloFormMixin, forms.ModelForm):
+    class Meta:
+        model = Ruta
+        fields = ['nombre', 'origen', 'destino']
+        widgets = {
+            'origen': forms.TextInput(attrs={'placeholder': 'Ej: Planta Aurora'}),
+            'destino': forms.TextInput(attrs={'placeholder': 'Ej: Plaza de Armas'}),
+        }

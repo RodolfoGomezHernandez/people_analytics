@@ -12,4 +12,6 @@ urlpatterns = [
     path('nuevo-vehiculo/', views.crear_vehiculo, name='crear_vehiculo'),
     path('nuevo-conductor/', views.crear_conductor, name='crear_conductor'),
     path('exportar/', views.exportar_excel_transporte, name='exportar_excel_transporte'),
+    path('rutas/', views.gestion_rutas, name='gestion_rutas'), # Nueva gestión
+    path('api/datos/', views.api_datos_dashboard, name='api_datos_transporte'), # API oculta
 ]

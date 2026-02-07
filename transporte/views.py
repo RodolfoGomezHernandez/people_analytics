@@ -6,9 +6,12 @@ from django.http import HttpResponse
 from datetime import datetime
 import openpyxl
 from openpyxl.styles import Font, PatternFill
+from django.http import JsonResponse
 
 from .models import Vehiculo, Conductor, RegistroSalida, Ruta
-from .forms import VehiculoForm, ConductorForm, RegistroGuardiaForm, EdicionAdminForm
+from .forms import VehiculoForm, ConductorForm, RegistroGuardiaForm, EdicionAdminForm, RutaForm
+from django.db.models.functions import TruncMonth
+from django.db.models import F, ExpressionWrapper, FloatField
 
 # --- 1. SEMÁFORO: Decide a dónde va el usuario ---
 @login_required
@@ -153,3 +156,98 @@ def crear_conductor(request):
     else:
         form = ConductorForm()
     return render(request, 'transporte/crear_conductor.html', {'form': form, 'titulo': 'Nuevo Conductor'})
+
+@login_required
+def gestion_rutas(request):
+    if not request.user.is_staff and not request.user.is_superuser:
+        return redirect('transporte_home')
+        
+    if request.method == 'POST':
+        form = RutaForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Ruta creada correctamente.')
+            return redirect('gestion_rutas')
+    else:
+        form = RutaForm()
+    
+    rutas = Ruta.objects.filter(activo=True)
+    return render(request, 'transporte/gestion_rutas.html', {'form': form, 'rutas': rutas})
+
+@login_required
+def api_datos_dashboard(request):
+    """API que devuelve JSON para alimentar Chart.js dinámicamente"""
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'No autorizado'}, status=403)
+
+    # 1. Filtros de Fecha (Default: Últimos 30 días o Todo)
+    inicio = request.GET.get('inicio')
+    fin = request.GET.get('fin')
+    
+    registros = RegistroSalida.objects.all()
+    if inicio and fin:
+        registros = registros.filter(fecha_registro__date__range=[inicio, fin])
+
+    # --- CALCULOS ---
+
+    # A. Ocupación por Vehículo (Promedio %)
+    ocupacion_vehiculo = registros.values('vehiculo__patente').annotate(
+        avg_ocupacion=Avg('ocupacion_porcentaje')
+    ).order_by('-avg_ocupacion')
+
+    # B. Ocupación por Tipo de Vehículo
+    ocupacion_tipo = registros.values('vehiculo__tipo').annotate(
+        avg_ocupacion=Avg('ocupacion_porcentaje')
+    )
+
+    # C. Costo por Tipo de Vehículo
+    costo_tipo = registros.values('vehiculo__tipo').annotate(
+        total_costo=Sum('valor_viaje')
+    )
+
+    # D. Curva Mensual de Costos
+    curva_costos = registros.annotate(mes=TruncMonth('fecha_registro')).values('mes').annotate(
+        total=Sum('valor_viaje')
+    ).order_by('mes')
+
+    # E. Promedio Costo por Persona (General, por Vehículo, por Tipo)
+    # Fórmula: Sum(Costo Total) / Sum(Pasajeros Totales)
+    
+    # E.1 General
+    total_costo_gen = registros.aggregate(Sum('valor_viaje'))['valor_viaje__sum'] or 0
+    total_pasajeros_gen = registros.aggregate(Sum('cantidad_pasajeros'))['cantidad_pasajeros__sum'] or 1
+    costo_persona_general = total_costo_gen / total_pasajeros_gen
+
+    # E.2 Por Vehículo
+    costo_persona_vehiculo = registros.values('vehiculo__patente').annotate(
+        costo=Sum('valor_viaje'),
+        pasajeros=Sum('cantidad_pasajeros')
+    )
+    # Calculamos en Python para evitar divisiones por cero en SQL complejo
+    data_cpp_vehiculo = []
+    for item in costo_persona_vehiculo:
+        cpp = item['costo'] / item['pasajeros'] if item['pasajeros'] > 0 else 0
+        data_cpp_vehiculo.append({'label': item['vehiculo__patente'], 'value': round(cpp)})
+
+    # E.3 Por Tipo
+    costo_persona_tipo = registros.values('vehiculo__tipo').annotate(
+        costo=Sum('valor_viaje'),
+        pasajeros=Sum('cantidad_pasajeros')
+    )
+    data_cpp_tipo = []
+    for item in costo_persona_tipo:
+        cpp = item['costo'] / item['pasajeros'] if item['pasajeros'] > 0 else 0
+        data_cpp_tipo.append({'label': item['vehiculo__tipo'], 'value': round(cpp)})
+
+
+    data = {
+        'ocupacion_vehiculo': list(ocupacion_vehiculo),
+        'ocupacion_tipo': list(ocupacion_tipo),
+        'costo_tipo': list(costo_tipo),
+        'curva_costos': [{'mes': x['mes'].strftime('%Y-%m'), 'total': x['total']} for x in curva_costos],
+        'cpp_general': round(costo_persona_general),
+        'cpp_vehiculo': data_cpp_vehiculo,
+        'cpp_tipo': data_cpp_tipo,
+    }
+
+    return JsonResponse(data)
