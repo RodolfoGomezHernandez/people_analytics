@@ -29,6 +29,7 @@ urlpatterns = [
     path('', dashboard, name='dashboard'), # Ruta principal
     path('reportes/', reportes, name='reportes'),
     path('reclutamiento/', include('reclutamiento.urls')),
+    path('transporte/', include('transporte.urls')),
 ]
 
 if settings.DEBUG:

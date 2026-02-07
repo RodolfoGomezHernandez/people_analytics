@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'core',
     'asistencia',
     'reclutamiento',
+    'transporte',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

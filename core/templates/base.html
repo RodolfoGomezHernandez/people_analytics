@@ -19,7 +19,13 @@
 
             <nav class="flex-1 p-4 space-y-2">
                 
-                <a href="{% url 'dashboard' %}" class="flex items-center gap-3 p-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
+                <a href="{% url 'dashboard' %}" 
+                   class="flex items-center gap-3 p-3 rounded-lg transition
+                   {% if request.resolver_match.url_name == 'dashboard' %}
+                       bg-blue-600 text-white shadow-lg shadow-blue-900/50
+                   {% else %}
+                       text-slate-400 hover:bg-slate-800 hover:text-white
+                   {% endif %}">
                     <i class="fa-solid fa-gauge"></i> Dashboard
                 </a>
 
@@ -29,6 +35,18 @@
                     </a>
                 {% endif %}
                 
+                {% if request.user|has_group:"Transporte" or request.user|has_group:"Guardias" %} 
+                    <a href="{% url 'transporte_home' %}" 
+                    class="flex items-center gap-3 p-3 rounded-lg transition
+                    {% if 'transporte' in request.path %}
+                        bg-blue-600 text-white shadow-lg shadow-blue-900/50
+                    {% else %}
+                        text-slate-400 hover:bg-slate-800 hover:text-white
+                    {% endif %}">
+                        <i class="fa-solid fa-bus"></i> Transporte
+                    </a>
+                {% endif %}
+
                 {% if request.user|has_group:"Capacitacion" %}
                     <a href="#" class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
                         <i class="fa-solid fa-chalkboard-user"></i> Capacitación
@@ -42,7 +60,13 @@
                 {% endif %}
                 
                 {% if request.user|has_group:"Analistas" %}
-                    <a href="{% url 'reportes' %}" class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                    <a href="{% url 'reportes' %}" 
+                       class="flex items-center gap-3 p-3 rounded-lg transition
+                       {% if 'reportes' in request.path %}
+                           bg-blue-600 text-white shadow-lg shadow-blue-900/50
+                       {% else %}
+                           text-slate-400 hover:bg-slate-800 hover:text-white
+                       {% endif %}">
                         <i class="fa-solid fa-chart-pie"></i> Reportes & Anomalías
                     </a>
                 {% endif %}
@@ -50,7 +74,13 @@
                 <div class="mt-8">
                     {% if request.user|has_group:"Reclutamiento" %}
                         <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Gestión de Talento</p>
-                        <a href="{% url 'crear_solicitud' %}" class="flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <a href="{% url 'crear_solicitud' %}" 
+                           class="flex items-center gap-3 p-3 rounded-lg transition
+                           {% if 'reclutamiento' in request.path %}
+                               bg-blue-600 text-white shadow-lg shadow-blue-900/50
+                           {% else %}
+                               text-slate-400 hover:bg-slate-800 hover:text-white
+                           {% endif %}">
                             <i class="fa-solid fa-user-plus"></i> Solicitar Personal
                         </a>
                     {% endif %}
@@ -63,7 +93,7 @@
                 {% endif %}
                 
             </nav>
-            
+
             <div class="p-4 border-t border-slate-800">
                 <form action="{% url 'logout' %}" method="post">
                     {% csrf_token %}

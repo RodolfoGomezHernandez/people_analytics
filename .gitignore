@@ -17,3 +17,5 @@ media/
 
 # Variables de entorno (Futuro)
 .env
+
+node_modules/
