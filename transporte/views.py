@@ -5,7 +5,8 @@ from django.db.models import Sum, Avg, Count
 from django.db.models.functions import TruncWeek
 from django.core.paginator import Paginator
 from django.http import HttpResponse, JsonResponse
-from datetime import datetime
+from datetime import datetime, date, timedelta # <--- Importante
+from django.utils.timezone import now # <--- ESTE ES EL QUE FALTABA
 import openpyxl
 
 from .models import Vehiculo, Conductor, RegistroSalida, Ruta
@@ -36,7 +37,6 @@ def registro_control_salida(request):
         if form.is_valid():
             registro = form.save(commit=False)
             registro.registrado_por = request.user
-            # El valor_viaje se autocalcula en el modelo (models.py) si no se especifica
             registro.save()
             messages.success(request, f'✅ Salida registrada: {registro.vehiculo.patente}')
             return redirect('control_salida')
@@ -52,30 +52,57 @@ def registro_control_salida(request):
         'es_admin': es_admin
     })
 
-# --- 3. VISTA ADMIN: Dashboard Completo ---
+# --- 3. VISTA ADMIN: Dashboard Completo (CON MEMORIA DE SESIÓN) ---
 @login_required
 def dashboard_transporte(request):
     if not request.user.is_staff and not request.user.is_superuser:
         return redirect('transporte_home')
 
-    # --- A. Lógica de Paginación y Tabla (Optimizada) ---
-    # 1. Capturar el tamaño de página (10, 20, 50, 100), default 10
+    # --- LÓGICA DE MEMORIA (SESIONES) ---
+    # 1. Intentamos obtener fechas de la URL
+    inicio_get = request.GET.get('inicio')
+    fin_get = request.GET.get('fin')
+
+    # 2. Si hay datos en URL, actualizamos la sesión
+    if inicio_get:
+        request.session['transporte_inicio'] = inicio_get
+    if fin_get:
+        request.session['transporte_fin'] = fin_get
+
+    # 3. Recuperamos de la sesión o definimos defaults (Mes actual)
+    fecha_hoy = now().date()
+    inicio_defecto = date(fecha_hoy.year, fecha_hoy.month, 1).strftime('%Y-%m-%d')
+    fin_defecto = fecha_hoy.strftime('%Y-%m-%d')
+
+    fecha_inicio = request.session.get('transporte_inicio', inicio_defecto)
+    fecha_fin = request.session.get('transporte_fin', fin_defecto)
+
+    # --- 4. PAGINACIÓN Y FILTRADO ---
     items_por_pagina = request.GET.get('page_size', '10')
     if items_por_pagina not in ['10', '20', '50', '100']:
         items_por_pagina = '10'
+    
+    # Filtramos por las fechas de memoria
+    registros_tabla = RegistroSalida.objects.filter(
+        fecha_registro__date__range=[fecha_inicio, fecha_fin]
+    ).select_related('vehiculo', 'ruta').order_by('-fecha_registro')
 
-    # 2. Queryset Limitado: Solo traemos los últimos 3000 para no saturar la vista
-    # Usamos select_related para evitar N+1 queries en la tabla
-    registros_tabla = RegistroSalida.objects.select_related('vehiculo', 'ruta').order_by('-fecha_registro')[:3000]
+    # Limite duro de 3000 para performance
+    registros_tabla = registros_tabla[:3000]
 
-    # 3. Paginador
     paginator = Paginator(registros_tabla, int(items_por_pagina))
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
+    # Generar rango de páginas inteligente (ej: 1 ... 5 6 7 ... 20)
+    custom_range = paginator.get_elided_page_range(page_obj.number, on_each_side=1, on_ends=1)
 
     context = {
-        'page_obj': page_obj,          # Objeto paginado para la tabla
-        'page_size': items_por_pagina, # Para mantener la selección en el dropdown
+        'page_obj': page_obj,
+        'page_size': items_por_pagina,
+        'custom_range': custom_range,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
     }
     return render(request, 'transporte/dashboard_admin.html', context)
 
@@ -109,11 +136,9 @@ def exportar_excel_transporte(request):
     ws = wb.active
     ws.title = "Bitácora"
     
-    # Encabezados
     headers = ['Fecha', 'Vehículo', 'Ruta', 'Pasajeros', 'Costo Final', 'Usuario']
     ws.append(headers)
     
-    # Aquí exportamos TODO el histórico (sin límite de 3000)
     for r in RegistroSalida.objects.all().select_related('vehiculo', 'ruta', 'registrado_por'):
         ws.append([
             r.fecha_registro.strftime("%d/%m/%Y %H:%M"),
@@ -134,18 +159,16 @@ def crear_vehiculo(request):
         if form.is_valid():
             form.save()
             messages.success(request, 'Vehículo registrado.')
-            return redirect('crear_vehiculo') # Recargamos para ver la tabla actualizada
+            return redirect('crear_vehiculo')
     else:
         form = VehiculoForm()
     
-    # Pasamos la lista para ver los que ya están
     vehiculos_existentes = Vehiculo.objects.filter(activo=True).order_by('patente')
     return render(request, 'transporte/crear_vehiculo.html', {
         'form': form, 
         'titulo': 'Nuevo Vehículo',
         'lista_vehiculos': vehiculos_existentes
     })
-
 
 @login_required
 def crear_conductor(request):
@@ -165,7 +188,6 @@ def crear_conductor(request):
         'lista_conductores': conductores_existentes
     })
 
-
 @login_required
 def gestion_rutas(request):
     if not request.user.is_staff and not request.user.is_superuser:
@@ -183,6 +205,7 @@ def gestion_rutas(request):
     rutas = Ruta.objects.filter(activo=True)
     return render(request, 'transporte/gestion_rutas.html', {'form': form, 'rutas': rutas})
 
+# --- 6. API DASHBOARD (MODIFICADA PARA NUEVOS GRÁFICOS) ---
 @login_required
 def api_datos_dashboard(request):
     if not request.user.is_superuser: return JsonResponse({'error': '403'}, status=403)
@@ -213,14 +236,12 @@ def api_datos_dashboard(request):
     cpp_tipo = [{'label': i['vehiculo__tipo'], 'value': round(i['c']/i['p'] if i['p']>0 else 0)} 
                 for i in registros.values('vehiculo__tipo').annotate(c=Sum('valor_viaje'), p=Sum('cantidad_pasajeros'))]
 
-    # --- NUEVOS DATOS REQUERIDOS (REQ 5) ---
     # 5. Costo Total por Ruta
     costo_ruta = list(registros.values('ruta__nombre').annotate(total=Sum('valor_viaje')).order_by('-total'))
 
     # 6. Costo por Pasajero por Ruta
     cpp_ruta_raw = registros.values('ruta__nombre').annotate(c=Sum('valor_viaje'), p=Sum('cantidad_pasajeros'))
     cpp_ruta = [{'label': i['ruta__nombre'], 'value': round(i['c']/i['p'] if i['p']>0 else 0)} for i in cpp_ruta_raw]
-    # Ordenamos por costo (opcional)
     cpp_ruta.sort(key=lambda x: x['value'], reverse=True)
 
     return JsonResponse({
@@ -231,7 +252,6 @@ def api_datos_dashboard(request):
         'cpp_general': round(cpp_gen),
         'cpp_vehiculo': cpp_vehiculo,
         'cpp_tipo': cpp_tipo,
-        # Nuevos:
         'costo_ruta': costo_ruta,
         'cpp_ruta': cpp_ruta,
     })

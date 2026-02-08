@@ -3,7 +3,19 @@
 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
     <div class="bg-white p-6 rounded-xl shadow-sm h-fit">
         <h2 class="text-xl font-bold mb-4">{{ titulo }}</h2>
-        <form method="post">{% csrf_token %}{{ form.as_p }}<button class="w-full mt-4 bg-blue-600 text-white py-2 rounded font-bold">Guardar</button></form>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            
+            <div class="flex gap-3 mt-6">
+                <a href="{% url 'dashboard_transporte' %}" class="w-1/3 bg-slate-200 text-slate-700 py-2 rounded font-bold text-center hover:bg-slate-300 transition">
+                    Cancelar
+                </a>
+                <button type="submit" class="w-2/3 bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 transition">
+                    Guardar Conductor
+                </button>
+            </div>
+        </form>
     </div>
     <div class="md:col-span-2 bg-white p-6 rounded-xl shadow-sm">
         <h3 class="font-bold mb-4">Conductores Existentes</h3>

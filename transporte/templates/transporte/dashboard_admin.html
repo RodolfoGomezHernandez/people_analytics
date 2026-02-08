@@ -26,11 +26,11 @@
             
             <div>
                 <label class="text-xs font-bold text-slate-500 uppercase">Fecha Inicio</label>
-                <input type="date" name="inicio" id="fechaInicio" value="{{ request.GET.inicio }}" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="date" name="inicio" id="fechaInicio" value="{{ fecha_inicio }}" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
             <div>
                 <label class="text-xs font-bold text-slate-500 uppercase">Fecha Fin</label>
-                <input type="date" name="fin" id="fechaFin" value="{{ request.GET.fin }}" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="date" name="fin" id="fechaFin" value="{{ fecha_fin }}" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
             <div>
                 <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700 transition flex justify-center items-center gap-2">
@@ -45,57 +45,51 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 lg:col-span-3">
             <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Evolución de Costos (Semanal)</h3>
             <div class="h-72 relative"><canvas id="chartCurvaCostos"></canvas></div>
         </div>
-
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
             <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Costo Total por Ruta</h3>
             <div class="h-64 relative"><canvas id="chartCostoRuta"></canvas></div>
         </div>
-
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Gasto Total por Tipo</h3>
             <div class="h-64 relative"><canvas id="chartCostoTipo"></canvas></div>
         </div>
-
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Costo Pasajero por Ruta</h3>
             <div class="h-64 relative"><canvas id="chartCppRuta"></canvas></div>
         </div>
-
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
             <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Costo Pasajero por Patente</h3>
             <div class="h-64 relative"><canvas id="chartCppVehiculo"></canvas></div>
         </div>
-
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
             <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">% Ocupación (Ranking Patente)</h3>
             <div class="h-64 relative"><canvas id="chartOcupacionVehiculo"></canvas></div>
         </div>
-
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">% Ocupación por Tipo</h3>
             <div class="h-64 relative"><canvas id="chartOcupacionTipo"></canvas></div>
         </div>
-
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Costo Pasajero por Tipo</h3>
             <div class="h-64 relative"><canvas id="chartCppTipo"></canvas></div>
         </div>
     </div>
     
-    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <div class="flex justify-between items-center mb-4">
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200" id="tablaRegistros">
+        
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
             <h3 class="font-bold text-slate-700">Últimos Registros</h3>
+            
             <form method="get" class="flex items-center gap-2">
-                <input type="hidden" name="inicio" value="{{ request.GET.inicio }}">
-                <input type="hidden" name="fin" value="{{ request.GET.fin }}">
+                <input type="hidden" name="inicio" value="{{ fecha_inicio }}">
+                <input type="hidden" name="fin" value="{{ fecha_fin }}">
                 
                 <label class="text-sm text-slate-500">Mostrar:</label>
-                <select name="page_size" onchange="this.form.submit()" class="border-slate-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500">
+                <select name="page_size" onchange="this.form.submit()" class="border-slate-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500 outline-none">
                     <option value="10" {% if page_size == '10' %}selected{% endif %}>10</option>
                     <option value="20" {% if page_size == '20' %}selected{% endif %}>20</option>
                     <option value="50" {% if page_size == '50' %}selected{% endif %}>50</option>
@@ -127,7 +121,9 @@
                         </td>
                         <td class="p-3 text-green-600 font-bold whitespace-nowrap">$ {{ reg.valor_viaje }}</td>
                         <td class="p-3 text-center">
-                            <a href="{% url 'editar_registro' reg.id %}" class="text-blue-600 hover:text-blue-800"><i class="fa-solid fa-pen-to-square"></i></a>
+                            <a href="{% url 'editar_registro' reg.id %}" class="text-blue-600 hover:text-blue-800 px-2 py-1 bg-blue-50 rounded border border-blue-200">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </a>
                         </td>
                     </tr>
                     {% empty %}
@@ -138,21 +134,36 @@
         </div>
 
         <div class="flex flex-col sm:flex-row justify-between items-center mt-4 pt-4 border-t gap-4">
-            <span class="text-xs text-slate-500">
-                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+            
+            <span class="text-xs text-slate-500 font-bold">
+                Total: {{ page_obj.paginator.count }} registros
             </span>
-            <div class="flex gap-1">
+
+            <div class="flex gap-1 items-center">
                 {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}&page_size={{ page_size }}&inicio={{ request.GET.inicio }}&fin={{ request.GET.fin }}" 
-                       class="px-3 py-1 border rounded hover:bg-slate-50 text-sm text-slate-600 transition">
-                        <i class="fa-solid fa-chevron-left"></i> Anterior
+                    <a href="?page={{ page_obj.previous_page_number }}&page_size={{ page_size }}&inicio={{ fecha_inicio }}&fin={{ fecha_fin }}#tablaRegistros" 
+                       class="px-3 py-1 border rounded hover:bg-slate-50 text-sm text-slate-600 transition" title="Anterior">
+                        <i class="fa-solid fa-chevron-left"></i>
                     </a>
                 {% endif %}
-                
+
+                {% for i in custom_range %}
+                    {% if i == '...' %}
+                        <span class="px-2 text-slate-400">...</span>
+                    {% else %}
+                        {% if i == page_obj.number %}
+                            <span class="px-3 py-1 border border-blue-500 bg-blue-50 text-blue-700 font-bold rounded text-sm">{{ i }}</span>
+                        {% else %}
+                            <a href="?page={{ i }}&page_size={{ page_size }}&inicio={{ fecha_inicio }}&fin={{ fecha_fin }}#tablaRegistros" 
+                               class="px-3 py-1 border rounded hover:bg-slate-50 text-slate-600 text-sm transition">{{ i }}</a>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+
                 {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}&page_size={{ page_size }}&inicio={{ request.GET.inicio }}&fin={{ request.GET.fin }}" 
-                       class="px-3 py-1 border rounded hover:bg-slate-50 text-sm text-slate-600 transition">
-                        Siguiente <i class="fa-solid fa-chevron-right"></i>
+                    <a href="?page={{ page_obj.next_page_number }}&page_size={{ page_size }}&inicio={{ fecha_inicio }}&fin={{ fecha_fin }}#tablaRegistros" 
+                       class="px-3 py-1 border rounded hover:bg-slate-50 text-sm text-slate-600 transition" title="Siguiente">
+                        <i class="fa-solid fa-chevron-right"></i>
                     </a>
                 {% endif %}
             </div>
@@ -167,26 +178,12 @@ Chart.register(ChartDataLabels);
 let charts = {}; 
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Si no hay fechas en el input (primera carga), poner defaults
-    if(!document.getElementById('fechaInicio').value) {
-        const date = new Date();
-        document.getElementById('fechaFin').valueAsDate = date;
-        document.getElementById('fechaInicio').valueAsDate = new Date(date.getFullYear(), date.getMonth(), 1);
-        
-        // Si no hay parámetros en la URL, los cargamos ahora
-        const params = new URLSearchParams(window.location.search);
-        if (!params.has('inicio')) {
-            cargarGraficos(); 
-        } else {
-             // Si YA hay parámetros en URL (por paginación), usamos esos
-             cargarGraficos();
-        }
-    } else {
-        cargarGraficos();
-    }
+    // Ya no dependemos de if(value) porque Django renderiza el valor correcto desde el inicio
+    cargarGraficos();
 });
 
 async function cargarGraficos() {
+    // Leemos los inputs que Django ya pre-llenó con las variables de sesión
     const inicio = document.getElementById('fechaInicio').value;
     const fin = document.getElementById('fechaFin').value;
     
@@ -196,18 +193,15 @@ async function cargarGraficos() {
 
     document.getElementById('kpiCppGeneral').innerText = `$ ${data.cpp_general}`;
 
-    // 1. CURVA COSTOS (Linea curva, sin relleno)
+    // 1. CURVA
     crearChart('chartCurvaCostos', 'line', data.curva_costos.map(x => x.mes), data.curva_costos.map(x => x.total), 'Costo', '#2563eb', '$', false, false); 
-    
     // 2. RUTAS
     crearChart('chartCostoRuta', 'bar', data.costo_ruta.map(x => x.ruta__nombre), data.costo_ruta.map(x => x.total), 'Costo Total', '#8b5cf6', '$', true);
     crearChart('chartCppRuta', 'bar', data.cpp_ruta.map(x => x.label), data.cpp_ruta.map(x => x.value), 'CPP $', '#ec4899', '$', true);
-
     // 3. TIPOS
     crearChart('chartCostoTipo', 'doughnut', data.costo_tipo.map(x => x.vehiculo__tipo), data.costo_tipo.map(x => x.total_costo), 'Costo', null, '$');
     crearChart('chartOcupacionTipo', 'bar', data.ocupacion_tipo.map(x => x.vehiculo__tipo), data.ocupacion_tipo.map(x => x.avg_ocupacion), '% Ocup', '#10b981', '%');
     crearChart('chartCppTipo', 'bar', data.cpp_tipo.map(x => x.label), data.cpp_tipo.map(x => x.value), 'CPP $', '#6366f1', '$');
-
     // 4. VEHICULOS
     crearChart('chartOcupacionVehiculo', 'bar', data.ocupacion_vehiculo.map(x => x.vehiculo__patente), data.ocupacion_vehiculo.map(x => x.avg_ocupacion), '% Ocup', '#f59e0b', '%', true);
     crearChart('chartCppVehiculo', 'bar', data.cpp_vehiculo.map(x => x.label), data.cpp_vehiculo.map(x => x.value), 'CPP $', '#ef4444', '$', true);
@@ -218,7 +212,7 @@ function crearChart(canvasId, type, labels, dataPoints, labelDataset, colorTheme
     if (charts[canvasId]) charts[canvasId].destroy();
 
     let bgColors = colorTheme;
-    if (type === 'doughnut') bgColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+    if (type === 'doughnut') bgColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1', '#ec4899'];
 
     charts[canvasId] = new Chart(ctx, {
         type: type,
