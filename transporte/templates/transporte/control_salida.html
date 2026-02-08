@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto mt-10 relative"> {% if request.user.is_superuser %}
+    <a href="{% url 'dashboard_transporte' %}" class="absolute -top-12 right-0 bg-slate-200 text-slate-700 hover:bg-slate-300 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition shadow-sm">
+        <i class="fa-solid fa-arrow-left"></i> Volver al Dashboard
+    </a>
+    {% endif %}
+
+    <div class="bg-slate-900 text-white p-6 rounded-t-xl flex justify-between items-center shadow-lg">
+        <div>
+            <h2 class="text-2xl font-bold text-yellow-400"><i class="fa-solid fa-tower-observation"></i> Control de Garita</h2>
+            <p class="text-slate-400 text-sm">Guardia activo: {{ request.user.first_name }} {{ request.user.last_name }}</p>
+        </div>
+        <div class="text-right">
+            <p class="text-4xl font-mono font-bold tracking-widest" id="reloj">00:00</p>
+            <p class="text-xs text-slate-400 uppercase">Hora Actual</p>
+        </div>
+    </div>
+
+    <div class="bg-white p-8 rounded-b-xl shadow-xl border border-slate-200">
+        
+        {% if messages %}
+            {% for message in messages %}
+            <div class="mb-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded shadow-sm flex items-center gap-3">
+                <i class="fa-solid fa-circle-check"></i> {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Destino / Ruta</label>
+                    {{ form.ruta }}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Vehículo (Patente)</label>
+                    {{ form.vehiculo }}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Conductor</label>
+                    {{ form.conductor }}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Pasajeros a Bordo</label>
+                    {{ form.cantidad_pasajeros }}
+                </div>
+            </div>
+
+            <button type="submit" class="w-full mt-8 bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl text-xl font-bold transition shadow-lg shadow-green-600/30 flex items-center justify-center gap-3">
+                <i class="fa-solid fa-paper-plane"></i> REGISTRAR SALIDA
+            </button>
+        </form>
+    </div>
+
+    <div class="mt-8">
+        <h3 class="text-slate-500 font-bold mb-4 uppercase text-xs tracking-wider">Últimas salidas registradas hoy</h3>
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden border border-slate-200">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 text-slate-500">
+                    <tr>
+                        <th class="p-3 text-left">Hora</th>
+                        <th class="p-3 text-left">Vehículo</th>
+                        <th class="p-3 text-left">Destino</th>
+                        <th class="p-3 text-center">Pasajeros</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reg in registros %}
+                    <tr class="border-t border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 font-mono text-blue-600 font-bold">{{ reg.fecha_registro|date:"H:i" }}</td>
+                        <td class="p-3 font-bold">{{ reg.vehiculo.patente }}</td>
+                        <td class="p-3">{{ reg.ruta.nombre }}</td>
+                        <td class="p-3 text-center">
+                            <span class="bg-slate-100 px-2 py-1 rounded-full font-bold text-slate-600">{{ reg.cantidad_pasajeros }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="p-4 text-center text-slate-400">Sin movimientos hoy.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Reloj en tiempo real
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('reloj').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }, 1000);
+</script>
+{% endblock %}

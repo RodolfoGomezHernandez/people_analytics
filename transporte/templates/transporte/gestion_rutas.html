@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-800">Gestión de Rutas</h2>
+            <p class="text-slate-500">Define los trayectos disponibles para la garita.</p>
+        </div>
+        <a href="{% url 'dashboard_transporte' %}" class="bg-slate-200 text-slate-700 hover:bg-slate-300 px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition">
+            <i class="fa-solid fa-arrow-left"></i> Volver al Dashboard
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="md:col-span-1 bg-white p-6 rounded-xl shadow-lg border border-slate-200 h-fit">
+            <h3 class="font-bold text-lg mb-4 text-blue-900 border-b pb-2">Nueva Ruta</h3>
+            <form method="post">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    {% for field in form %}
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-1">{{ field.label }}</label>
+                        {{ field }}
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-600/30 transition">
+                    <i class="fa-solid fa-save"></i> Guardar Ruta
+                </button>
+            </form>
+        </div>
+
+        <div class="md:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-4 bg-slate-50 border-b border-slate-200 font-bold text-slate-700">
+                Rutas Activas
+            </div>
+            <table class="w-full text-sm text-left">
+                <thead class="bg-white text-slate-500 border-b">
+                    <tr>
+                        <th class="p-4">Nombre Corto</th>
+                        <th class="p-4">Trayecto (Origen -> Destino)</th>
+                        <th class="p-4 text-center">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in rutas %}
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="p-4 font-bold text-slate-800">{{ r.nombre }}</td>
+                        <td class="p-4 flex items-center gap-2">
+                            <span class="text-slate-600">{{ r.origen }}</span>
+                            <i class="fa-solid fa-arrow-right text-slate-300 text-xs"></i>
+                            <span class="text-slate-600">{{ r.destino }}</span>
+                        </td>
+                        <td class="p-4 text-center">
+                            <span class="text-green-700 bg-green-100 px-3 py-1 rounded-full text-xs font-bold border border-green-200">Activa</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="p-8 text-center text-slate-400">
+                            No hay rutas registradas. Usa el formulario de la izquierda.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -17,5 +17,12 @@ media/
 .vscode/
 .idea/
 
+<<<<<<< HEAD
 # Variables de entorno
 .env
+=======
+# Variables de entorno (Futuro)
+.env
+
+node_modules/
+>>>>>>> feat/transporte
