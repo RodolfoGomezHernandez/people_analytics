@@ -1,7 +1,9 @@
 # .gitignore
+
 # Python y Venv
 __pycache__/
 *.py[cod]
+*.pyc
 venv/
 env/
 
@@ -15,5 +17,5 @@ media/
 .vscode/
 .idea/
 
-# Variables de entorno (Futuro)
+# Variables de entorno
 .env
