@@ -6,96 +6,175 @@ from django.contrib.auth.models import User
 from datetime import datetime, time
 
 class Command(BaseCommand):
-    help = 'Carga datos históricos con normalización de rutas'
+    help = 'Carga masiva con estandarización agresiva de rutas y limpieza de datos'
 
     def add_arguments(self, parser):
         parser.add_argument('excel_file', type=str, help='Ruta del archivo Excel')
 
-    def normalizar_nombre_ruta(self, nombre_sucio):
-        """Transforma CURICO 2, 3 -> CURICO 1"""
-        nombre = str(nombre_sucio).upper().strip()
+    def normalizar_ruta(self, valor_celda):
+        """
+        Transforma nombres sucios en nombres estándar.
+        Ej: "CURICÓ 1,2,3" -> "CURICO 1"
+            "TENO 1 VAN APOYO" -> "TENO 1"
+        """
+        if pd.isna(valor_celda) or str(valor_celda).strip() == '':
+            return None
+
+        # 1. LIMPIEZA BÁSICA (Mayúsculas y sin tildes)
+        nombre = str(valor_celda).upper().strip()
+        nombre = nombre.replace('Á', 'A').replace('É', 'E').replace('Í', 'I').replace('Ó', 'O').replace('Ú', 'U')
+
+        # 2. REGLAS DE NEGOCIO (Busca palabras clave y asigna la ruta estándar)
         
-        # Diccionario de reglas de unificación
-        # Si encuentra la CLAVE, devuelve el VALOR
-        if "CURICO" in nombre: return "CURICO 1"
-        if "TENO" in nombre: return "TENO 1"
-        if "MONTAÑA" in nombre: return "LA MONTAÑA 1"
-        if "MOLINA" in nombre: return "MOLINA 1" # Por si acaso aparecen más Molinas
-        
-        return nombre # Si no coincide con nada (ej: MORZA), lo devuelve tal cual
+        # --- CASO CURICO ---
+        if "CURICO" in nombre:
+            # Si contiene "1" (ej: "CURICO 1", "CURICO 1,2,3"), forzamos CURICO 1
+            if "1" in nombre: return "CURICO 1"
+            # Si no tiene 1 pero tiene 2 (ej: "CURICO 2,3"), forzamos CURICO 2
+            if "2" in nombre: return "CURICO 2"
+            # Si solo tiene 3
+            if "3" in nombre: return "CURICO 3"
+            # Si dice solo "CURICO" sin número, asumimos 1
+            return "CURICO 1"
+
+        # --- CASO TENO ---
+        if "TENO" in nombre:
+            # TENO CENTRO lo mandamos a TENO 1 (o crea una regla aparte si prefieres)
+            if "CENTRO" in nombre: return "TENO 1"
+            if "2" in nombre: return "TENO 2"
+            # Atrapa "TENO 1", "TENO 1 VAN", "TENO 1 APOYO"
+            return "TENO 1"
+
+        # --- CASO LA MONTAÑA ---
+        # Aceptamos MONTAÑA con Ñ o N por si acaso
+        if "MONTANA" in nombre or "MONTAÑA" in nombre:
+            if "2" in nombre: return "LA MONTAÑA 2"
+            return "LA MONTAÑA 1"
+
+        # --- OTROS CASOS SIMPLES ---
+        if "MOLINA" in nombre: return "MOLINA"
+        if "MORZA" in nombre: return "MORZA"
+        if "RAUCO" in nombre: return "RAUCO"
+        if "CHEPICA" in nombre: return "CHEPICA"
+
+        # Si no coincide con nada conocido, devolvemos el nombre limpio pero original
+        # (Esto sirve para detectar rutas nuevas en el futuro)
+        return nombre
 
     def handle(self, *args, **kwargs):
         file_path = kwargs['excel_file']
-        print(f"--- CARGA CON UNIFICACIÓN DE RUTAS ---")
+        print(f"--- INICIANDO CARGA CON LIMPIEZA PROFUNDA ---")
 
         try:
+            # Leemos el Excel
             df = pd.read_excel(file_path)
+            
+            # Normalizamos encabezados (quita espacios y pone mayúsculas)
             df.columns = df.columns.astype(str).str.upper().str.strip()
+            
+            print(f"Columnas encontradas: {list(df.columns)}")
+
         except Exception as e:
-            print(f"Error leyendo Excel: {e}")
+            print(f"❌ Error crítico leyendo el archivo: {e}")
             return
 
+        # 1. RELLENAR CELDAS VACÍAS (MERGED CELLS)
+        # Esto soluciona el problema de que la fecha solo aparece en la primera fila del día
         df['FECHA'] = df['FECHA'].ffill()
         df['TURNO'] = df['TURNO'].ffill()
 
-        user_sys, _ = User.objects.get_or_create(username='sistema_historico')
+        # Generamos recursos base
+        user_sys, _ = User.objects.get_or_create(username='sistema_carga')
         chofer_gen, _ = Conductor.objects.get_or_create(rut='9999999-9', defaults={'nombre': 'CHOFER HISTÓRICO'})
 
-        cache_vehiculos = {}
+        # Cache para optimizar velocidad
         cache_rutas = {}
-        count = 0
+        cache_vehiculos = {}
+        
+        registros_creados = 0
+        errores = 0
 
         for index, row in df.iterrows():
             try:
-                if pd.isna(row['RUTA']): continue
-
-                # 1. NORMALIZACIÓN DE RUTA (Tu requerimiento #4)
-                ruta_original = str(row['RUTA'])
-                ruta_limpia = self.normalizar_nombre_ruta(ruta_original)
-
-                # 2. PROCESAMIENTO ESTÁNDAR
-                fecha_raw = row['FECHA']
-                turno = str(row['TURNO']).upper()
-                tipo = str(row['TIPO']).upper()
-                pax = int(row['PAX']) if pd.notnull(row['PAX']) else 0
+                # A. LIMPIEZA DE RUTA
+                # Si la celda ruta está vacía, saltamos la fila (puede ser fila de totales)
+                ruta_raw = row.get('RUTA')
+                ruta_final = self.normalizar_ruta(ruta_raw)
                 
+                if not ruta_final: 
+                    continue # Salta filas vacías
+
+                # B. LIMPIEZA DE FECHA Y HORA
+                fecha_excel = row['FECHA']
+                turno_str = str(row['TURNO']).upper()
+                
+                # Definir hora según turno
+                hora_viaje = time(8, 0) # Default
+                if 'TURNO 1' in turno_str: hora_viaje = time(7, 30) # Mañana
+                elif 'TURNO 2' in turno_str: hora_viaje = time(16, 30) # Tarde
+                elif 'TURNO 3' in turno_str: hora_viaje = time(23, 30) # Noche
+
+                # Combinar fecha y hora
+                if not isinstance(fecha_excel, datetime):
+                    # Intenta parsear texto dd-mm-yyyy
+                    fecha_excel = pd.to_datetime(fecha_excel, dayfirst=True)
+                
+                fecha_completa = timezone.make_aware(datetime.combine(fecha_excel.date(), hora_viaje))
+
+                # C. LIMPIEZA DE TARIFA Y PAX
+                # Tarifa: Quitar $, puntos y convertir a int
                 try:
-                    tarifa = int(float(str(row['TARIFA']).replace('$','').replace('.','').strip()))
+                    tarifa_str = str(row['TARIFA']).replace('$', '').replace('.', '').replace(' ', '')
+                    tarifa = int(float(tarifa_str))
                 except:
                     tarifa = 0
 
-                hora = time(8,0)
-                if 'TURNO 2' in turno: hora = time(16,0)
-                elif 'TURNO 3' in turno: hora = time(23,30)
+                # Pax: Convertir a int, si es vacío o texto raro es 0
+                try:
+                    pax = int(row['PAX'])
+                except:
+                    pax = 0
+
+                # D. IDENTIFICAR VEHÍCULO
+                tipo_str = str(row['TIPO']).upper()
+                if 'MINIBUS' in tipo_str:
+                    modelo, cap, pat = 'MINIBUS', 25, 'HIST-MINI'
+                elif 'VAN' in tipo_str:
+                    modelo, cap, pat = 'VAN', 17, 'HIST-VAN'
+                else:
+                    modelo, cap, pat = 'BUS', 42, 'HIST-BUS'
+
+                # E. GESTIÓN DE OBJETOS EN BD (Con Cache)
                 
-                if not isinstance(fecha_raw, datetime): fecha_raw = pd.to_datetime(fecha_raw, dayfirst=True)
-                fecha_final = timezone.make_aware(datetime.combine(fecha_raw.date(), hora))
-
                 # Vehículo
-                if 'MINIBUS' in tipo: mod, cap, pat = 'MINIBUS', 25, 'HIST-MINI'
-                elif 'VAN' in tipo: mod, cap, pat = 'VAN', 17, 'HIST-VAN'
-                else: mod, cap, pat = 'BUS', 42, 'HIST-BUS'
-
                 if pat not in cache_vehiculos:
-                    v, _ = Vehiculo.objects.get_or_create(patente=pat, defaults={'tipo':mod, 'capacidad':cap})
+                    v, _ = Vehiculo.objects.get_or_create(patente=pat, defaults={'tipo': modelo, 'capacidad': cap})
                     cache_vehiculos[pat] = v
                 
-                # Ruta (Usando el nombre LIMPIO)
-                if ruta_limpia not in cache_rutas:
-                    r, _ = Ruta.objects.get_or_create(nombre=ruta_limpia, defaults={'origen':'Planta', 'destino':ruta_limpia})
-                    cache_rutas[ruta_limpia] = r
-                
+                # Ruta (Usando el nombre ya LIMPIO)
+                if ruta_final not in cache_rutas:
+                    r, _ = Ruta.objects.get_or_create(
+                        nombre=ruta_final, 
+                        defaults={'origen': 'Planta', 'destino': ruta_final}
+                    )
+                    cache_rutas[ruta_final] = r
+
+                # F. GUARDAR
                 RegistroSalida.objects.create(
-                    fecha_registro=fecha_final,
+                    fecha_registro=fecha_completa,
                     registrado_por=user_sys,
-                    ruta=cache_rutas[ruta_limpia],
+                    ruta=cache_rutas[ruta_final],
                     vehiculo=cache_vehiculos[pat],
                     conductor=chofer_gen,
                     cantidad_pasajeros=pax,
                     valor_viaje=tarifa
                 )
-                count += 1
-            except Exception as e:
-                print(f"Error fila {index}: {e}")
+                registros_creados += 1
 
-        print(f"✅ LISTO. {count} registros cargados y rutas unificadas.")
+            except Exception as e:
+                # print(f"Fila {index} saltada: {e}") # Descomentar para debug
+                errores += 1
+
+        print(f"✅ PROCESO TERMINADO")
+        print(f"   - Registros importados: {registros_creados}")
+        print(f"   - Filas ignoradas/errores: {errores}")

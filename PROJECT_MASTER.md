@@ -29,3 +29,21 @@
 - [ ] Crear Nuevo Módulo Urgente (Prioridad Alta).
 - [ ] Migrar DB a PostgreSQL.
 - [ ] Implementar Docker para despliegue.
+
+# 🚛 Sistema de Gestión de Transporte - Aurora Australis
+
+Módulo para el control de flota, costos y asistencia de transporte de personal.
+
+## 📊 Dashboard de Analytics
+El sistema cuenta con un dashboard avanzado para la toma de decisiones:
+- **8 KPIs en tiempo real:** Evolución de costos, Costo por Ruta, Ocupación y CPP (Costo Por Pasajero).
+- **Filtros Persistentes:** El sistema "recuerda" el rango de fechas seleccionado aunque cambies de página.
+- **Gráficos Interactivos:** Visualización con Chart.js (Curvas sin relleno, Donas, Barras horizontales).
+- **Paginación Inteligente:** Navegación optimizada para grandes volúmenes de datos.
+
+## 🛠 Carga Masiva de Datos
+El sistema incluye un script inteligente para importar históricos desde Excel, capaz de limpiar y normalizar datos sucios.
+
+**Comando:**
+```bash
+python manage.py cargar_historico nombre_archivo.xlsx
