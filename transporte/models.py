@@ -51,7 +51,8 @@ class Ruta(models.Model):
 # 4. REGISTRO DE CONTROL (LA GARITA)
 class RegistroSalida(models.Model):
     # Campos automáticos
-    fecha_registro = models.DateTimeField(auto_now_add=True)
+    fecha_registro = models.DateTimeField(default=timezone.now)
+    #fecha_registro = models.DateTimeField(auto_now_add=True)
     registrado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     
     # Datos Operativos

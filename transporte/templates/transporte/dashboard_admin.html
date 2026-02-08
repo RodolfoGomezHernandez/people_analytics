@@ -9,85 +9,102 @@
                 <h2 class="text-2xl font-bold text-slate-800">Analytics de Transporte</h2>
                 <p class="text-slate-500 text-sm">Monitor de eficiencia, costos y gestión de flota.</p>
             </div>
-            
             <div class="flex flex-wrap gap-2 justify-center xl:justify-end">
                 <a href="{% url 'control_salida' %}" class="bg-slate-800 text-yellow-400 border border-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-700 text-sm flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-tower-observation"></i> Ir a Garita
                 </a>
-
-                <div class="h-8 w-px bg-slate-300 mx-2 hidden md:block"></div> <a href="{% url 'crear_vehiculo' %}" class="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-50 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-bus"></i> + Vehículo
-                </a>
-                <a href="{% url 'crear_conductor' %}" class="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-50 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-id-card"></i> + Conductor
-                </a>
-                <a href="{% url 'gestion_rutas' %}" class="bg-blue-50 text-blue-700 border border-blue-200 px-4 py-2 rounded-lg font-bold hover:bg-blue-100 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-map-location-dot"></i> Rutas
-                </a>
-                <a href="{% url 'exportar_excel_transporte' %}" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 text-sm flex items-center gap-2 shadow-lg shadow-green-600/20">
-                    <i class="fa-solid fa-file-excel"></i> Excel
-                </a>
+                <div class="h-8 w-px bg-slate-300 mx-2 hidden md:block"></div>
+                <a href="{% url 'crear_vehiculo' %}" class="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-50 text-sm flex items-center gap-2"><i class="fa-solid fa-bus"></i> + Vehículo</a>
+                <a href="{% url 'crear_conductor' %}" class="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-50 text-sm flex items-center gap-2"><i class="fa-solid fa-id-card"></i> + Conductor</a>
+                <a href="{% url 'gestion_rutas' %}" class="bg-blue-50 text-blue-700 border border-blue-200 px-4 py-2 rounded-lg font-bold hover:bg-blue-100 text-sm flex items-center gap-2"><i class="fa-solid fa-map-location-dot"></i> Rutas</a>
+                <a href="{% url 'exportar_excel_transporte' %}" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 text-sm flex items-center gap-2 shadow-lg shadow-green-600/20"><i class="fa-solid fa-file-excel"></i> Excel</a>
             </div>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end bg-slate-50 p-4 rounded-lg border border-slate-100">
+        <form method="get" id="filterForm" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end bg-slate-50 p-4 rounded-lg border border-slate-100">
+            <input type="hidden" name="page_size" value="{{ page_size }}">
+            
             <div>
                 <label class="text-xs font-bold text-slate-500 uppercase">Fecha Inicio</label>
-                <input type="date" id="fechaInicio" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="date" name="inicio" id="fechaInicio" value="{{ request.GET.inicio }}" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
             <div>
                 <label class="text-xs font-bold text-slate-500 uppercase">Fecha Fin</label>
-                <input type="date" id="fechaFin" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="date" name="fin" id="fechaFin" value="{{ request.GET.fin }}" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
             <div>
-                <button onclick="cargarGraficos()" class="w-full bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700 transition flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-filter"></i> Actualizar Gráficos
+                <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700 transition flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-filter"></i> Filtrar Datos
                 </button>
             </div>
             <div class="text-center border-l border-slate-200 pl-4">
                  <label class="text-xs font-bold text-slate-500 uppercase">Costo Promedio / Persona</label>
                  <p class="text-2xl font-bold text-green-600" id="kpiCppGeneral">$ --</p>
             </div>
-        </div>
+        </form>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 lg:col-span-3">
+            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Evolución de Costos (Semanal)</h3>
+            <div class="h-72 relative"><canvas id="chartCurvaCostos"></canvas></div>
+        </div>
+
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
-            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Evolución de Costos Mensuales</h3>
-            <div class="h-64 relative"><canvas id="chartCurvaCostos"></canvas></div>
+            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Costo Total por Ruta</h3>
+            <div class="h-64 relative"><canvas id="chartCostoRuta"></canvas></div>
         </div>
 
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Gasto por Tipo de Vehículo</h3>
+            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Gasto Total por Tipo</h3>
             <div class="h-64 relative"><canvas id="chartCostoTipo"></canvas></div>
         </div>
 
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Costo Pasajero por Ruta</h3>
+            <div class="h-64 relative"><canvas id="chartCppRuta"></canvas></div>
+        </div>
+
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
-            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">% Ocupación (Ranking por Patente)</h3>
+            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Costo Pasajero por Patente</h3>
+            <div class="h-64 relative"><canvas id="chartCppVehiculo"></canvas></div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
+            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">% Ocupación (Ranking Patente)</h3>
             <div class="h-64 relative"><canvas id="chartOcupacionVehiculo"></canvas></div>
         </div>
 
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">% Ocupación Promedio (Por Tipo)</h3>
+            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">% Ocupación por Tipo</h3>
             <div class="h-64 relative"><canvas id="chartOcupacionTipo"></canvas></div>
         </div>
 
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
-            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Costo por Pasajero (Por Patente)</h3>
-            <div class="h-64 relative"><canvas id="chartCppVehiculo"></canvas></div>
-        </div>
-
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Costo por Pasajero (Por Tipo)</h3>
+            <h3 class="font-bold text-slate-700 mb-4 text-xs uppercase tracking-wider border-b pb-2">Costo Pasajero por Tipo</h3>
             <div class="h-64 relative"><canvas id="chartCppTipo"></canvas></div>
         </div>
-
     </div>
     
     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <h3 class="font-bold text-slate-700 mb-4">Últimos Registros</h3>
-        <div class="overflow-x-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-slate-700">Últimos Registros</h3>
+            <form method="get" class="flex items-center gap-2">
+                <input type="hidden" name="inicio" value="{{ request.GET.inicio }}">
+                <input type="hidden" name="fin" value="{{ request.GET.fin }}">
+                
+                <label class="text-sm text-slate-500">Mostrar:</label>
+                <select name="page_size" onchange="this.form.submit()" class="border-slate-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option value="10" {% if page_size == '10' %}selected{% endif %}>10</option>
+                    <option value="20" {% if page_size == '20' %}selected{% endif %}>20</option>
+                    <option value="50" {% if page_size == '50' %}selected{% endif %}>50</option>
+                    <option value="100" {% if page_size == '100' %}selected{% endif %}>100</option>
+                </select>
+            </form>
+        </div>
+
+        <div class="overflow-x-auto min-h-[300px]">
             <table class="w-full text-sm text-left">
                 <thead class="bg-slate-50 text-slate-500">
                     <tr>
@@ -100,63 +117,103 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for reg in ultimos_registros %}
-                    <tr class="border-t hover:bg-slate-50">
-                        <td class="p-3">{{ reg.fecha_registro|date:"d/m H:i" }}</td>
+                    {% for reg in page_obj %}
+                    <tr class="border-t hover:bg-slate-50 transition-colors">
+                        <td class="p-3 whitespace-nowrap">{{ reg.fecha_registro|date:"d/m H:i" }}</td>
                         <td class="p-3 font-bold">{{ reg.vehiculo.patente }}</td>
-                        <td class="p-3">{{ reg.ruta.nombre }}</td>
-                        <td class="p-3 text-center">{{ reg.cantidad_pasajeros }}</td>
-                        <td class="p-3 text-green-600 font-bold">$ {{ reg.valor_viaje }}</td>
+                        <td class="p-3 max-w-xs truncate" title="{{ reg.ruta.nombre }}">{{ reg.ruta.nombre }}</td>
                         <td class="p-3 text-center">
-                            <a href="{% url 'editar_registro' reg.id %}" class="text-blue-600 hover:text-blue-800 px-3 py-1 bg-blue-50 rounded border border-blue-200 font-medium">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                            </a>
+                            <span class="bg-slate-100 px-2 py-1 rounded text-xs font-bold">{{ reg.cantidad_pasajeros }}</span>
+                        </td>
+                        <td class="p-3 text-green-600 font-bold whitespace-nowrap">$ {{ reg.valor_viaje }}</td>
+                        <td class="p-3 text-center">
+                            <a href="{% url 'editar_registro' reg.id %}" class="text-blue-600 hover:text-blue-800"><i class="fa-solid fa-pen-to-square"></i></a>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="6" class="p-4 text-center text-slate-400">Sin registros recientes.</td></tr>
+                    <tr><td colspan="6" class="p-8 text-center text-slate-400">Sin registros disponibles.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <div class="flex flex-col sm:flex-row justify-between items-center mt-4 pt-4 border-t gap-4">
+            <span class="text-xs text-slate-500">
+                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+            </span>
+            <div class="flex gap-1">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&page_size={{ page_size }}&inicio={{ request.GET.inicio }}&fin={{ request.GET.fin }}" 
+                       class="px-3 py-1 border rounded hover:bg-slate-50 text-sm text-slate-600 transition">
+                        <i class="fa-solid fa-chevron-left"></i> Anterior
+                    </a>
+                {% endif %}
+                
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&page_size={{ page_size }}&inicio={{ request.GET.inicio }}&fin={{ request.GET.fin }}" 
+                       class="px-3 py-1 border rounded hover:bg-slate-50 text-sm text-slate-600 transition">
+                        Siguiente <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-
 <script>
-// Registramos el plugin
 Chart.register(ChartDataLabels);
-
 let charts = {}; 
 
 document.addEventListener('DOMContentLoaded', () => {
-    const date = new Date();
-    document.getElementById('fechaFin').valueAsDate = date;
-    document.getElementById('fechaInicio').valueAsDate = new Date(date.getFullYear(), date.getMonth(), 1);
-    cargarGraficos();
+    // Si no hay fechas en el input (primera carga), poner defaults
+    if(!document.getElementById('fechaInicio').value) {
+        const date = new Date();
+        document.getElementById('fechaFin').valueAsDate = date;
+        document.getElementById('fechaInicio').valueAsDate = new Date(date.getFullYear(), date.getMonth(), 1);
+        
+        // Si no hay parámetros en la URL, los cargamos ahora
+        const params = new URLSearchParams(window.location.search);
+        if (!params.has('inicio')) {
+            cargarGraficos(); 
+        } else {
+             // Si YA hay parámetros en URL (por paginación), usamos esos
+             cargarGraficos();
+        }
+    } else {
+        cargarGraficos();
+    }
 });
 
 async function cargarGraficos() {
-    // ... (Tu función cargarGraficos sigue igual) ...
     const inicio = document.getElementById('fechaInicio').value;
     const fin = document.getElementById('fechaFin').value;
+    
+    // Llamada API
     const response = await fetch(`{% url 'api_datos_transporte' %}?inicio=${inicio}&fin=${fin}`);
     const data = await response.json();
 
     document.getElementById('kpiCppGeneral').innerText = `$ ${data.cpp_general}`;
 
-    // LLAMADAS A CREAR CHART (Igual que antes)
-    crearChart('chartCurvaCostos', 'line', data.curva_costos.map(x => x.mes), data.curva_costos.map(x => x.total), 'Costo', '#2563eb', '$');
+    // 1. CURVA COSTOS (Linea curva, sin relleno)
+    crearChart('chartCurvaCostos', 'line', data.curva_costos.map(x => x.mes), data.curva_costos.map(x => x.total), 'Costo', '#2563eb', '$', false, false); 
+    
+    // 2. RUTAS
+    crearChart('chartCostoRuta', 'bar', data.costo_ruta.map(x => x.ruta__nombre), data.costo_ruta.map(x => x.total), 'Costo Total', '#8b5cf6', '$', true);
+    crearChart('chartCppRuta', 'bar', data.cpp_ruta.map(x => x.label), data.cpp_ruta.map(x => x.value), 'CPP $', '#ec4899', '$', true);
+
+    // 3. TIPOS
     crearChart('chartCostoTipo', 'doughnut', data.costo_tipo.map(x => x.vehiculo__tipo), data.costo_tipo.map(x => x.total_costo), 'Costo', null, '$');
-    crearChart('chartOcupacionVehiculo', 'bar', data.ocupacion_vehiculo.map(x => x.vehiculo__patente), data.ocupacion_vehiculo.map(x => x.avg_ocupacion), '% Ocup', '#f59e0b', '%', true);
     crearChart('chartOcupacionTipo', 'bar', data.ocupacion_tipo.map(x => x.vehiculo__tipo), data.ocupacion_tipo.map(x => x.avg_ocupacion), '% Ocup', '#10b981', '%');
-    crearChart('chartCppVehiculo', 'bar', data.cpp_vehiculo.map(x => x.label), data.cpp_vehiculo.map(x => x.value), 'CPP $', '#ef4444', '$');
-    crearChart('chartCppTipo', 'bar', data.cpp_tipo.map(x => x.label), data.cpp_tipo.map(x => x.value), 'CPP $', '#8b5cf6', '$');
+    crearChart('chartCppTipo', 'bar', data.cpp_tipo.map(x => x.label), data.cpp_tipo.map(x => x.value), 'CPP $', '#6366f1', '$');
+
+    // 4. VEHICULOS
+    crearChart('chartOcupacionVehiculo', 'bar', data.ocupacion_vehiculo.map(x => x.vehiculo__patente), data.ocupacion_vehiculo.map(x => x.avg_ocupacion), '% Ocup', '#f59e0b', '%', true);
+    crearChart('chartCppVehiculo', 'bar', data.cpp_vehiculo.map(x => x.label), data.cpp_vehiculo.map(x => x.value), 'CPP $', '#ef4444', '$', true);
 }
 
-function crearChart(canvasId, type, labels, dataPoints, labelDataset, colorTheme, unit = '', horizontal = false) {
+function crearChart(canvasId, type, labels, dataPoints, labelDataset, colorTheme, unit = '', horizontal = false, fillArea = true) {
     const ctx = document.getElementById(canvasId).getContext('2d');
     if (charts[canvasId]) charts[canvasId].destroy();
 
@@ -172,41 +229,31 @@ function crearChart(canvasId, type, labels, dataPoints, labelDataset, colorTheme
                 data: dataPoints,
                 backgroundColor: bgColors,
                 borderColor: type === 'line' ? colorTheme : 'transparent',
-                tension: 0.3,
-                fill: type === 'line'
+                tension: 0.4,
+                fill: type === 'line' ? fillArea : true
             }]
         },
         options: {
             indexAxis: horizontal ? 'y' : 'x',
-            responsive: true,
             maintainAspectRatio: false,
             plugins: { 
-                legend: { display: type === 'doughnut' }, // Solo la torta tiene leyenda
-                tooltip: { enabled: true },
+                legend: { display: type === 'doughnut' },
                 datalabels: {
-                    // AQUÍ ESTÁ EL CAMBIO: Si es doughnut, ocultamos los números (display: false)
-                    display: type !== 'doughnut', 
+                    display: type !== 'doughnut',
                     color: type === 'line' ? colorTheme : '#333',
                     anchor: horizontal ? 'end' : 'end', 
                     align: horizontal ? 'right' : 'top',
                     offset: 4,
                     font: { weight: 'bold', size: 10 },
-                    formatter: function(value) {
-                        if (unit === '$') return '$' + new Intl.NumberFormat('es-CL').format(value);
-                        if (unit === '%') return Math.round(value) + '%';
-                        return value;
+                    formatter: function(val) { 
+                        return unit === '$' ? '$'+new Intl.NumberFormat('es-CL').format(val) : Math.round(val)+unit 
                     }
                 }
             },
-            layout: {
-                padding: {
-                    top: 20,
-                    right: horizontal ? 40 : 0
-                }
-            },
+            layout: { padding: { top: 20, right: horizontal ? 60 : 0 } },
             scales: type === 'doughnut' ? {} : { 
-                y: { beginAtZero: true, grid: { display: true, borderDash: [2, 2] } },
-                x: { grid: { display: false } }
+                y: { beginAtZero: true }, 
+                x: { grid: { display: false } } 
             }
         }
     });

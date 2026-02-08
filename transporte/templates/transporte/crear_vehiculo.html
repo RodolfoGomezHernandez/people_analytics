@@ -1,31 +1,24 @@
 {% extends 'base.html' %}
-
 {% block content %}
-<div class="max-w-2xl mx-auto">
-    <div class="mb-8">
-        <h2 class="text-2xl font-bold text-slate-800">{{ titulo }}</h2>
-        <p class="text-slate-500">Completa los datos para registrar el recurso en la flota.</p>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div class="bg-white p-6 rounded-xl shadow-sm h-fit">
+        <h2 class="text-xl font-bold mb-4">{{ titulo }}</h2>
+        <form method="post">{% csrf_token %}{{ form.as_p }}<button class="w-full mt-4 bg-blue-600 text-white py-2 rounded font-bold">Guardar</button></form>
     </div>
-
-    <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
-        <form method="post">
-            {% csrf_token %}
-            <div class="grid gap-6">
-                {% for field in form %}
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.help_text %}<p class="text-xs text-slate-400 mt-1">{{ field.help_text }}</p>{% endif %}
-                    {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
-                </div>
+    <div class="md:col-span-2 bg-white p-6 rounded-xl shadow-sm">
+        <h3 class="font-bold mb-4">Vehículos Existentes</h3>
+        <table class="w-full text-sm text-left">
+            <thead class="bg-slate-50"><tr><th class="p-2">Patente</th><th class="p-2">Tipo</th><th class="p-2">Capacidad</th></tr></thead>
+            <tbody>
+                {% for v in lista_vehiculos %}
+                <tr class="border-t">
+                    <td class="p-2 font-bold">{{ v.patente }}</td>
+                    <td class="p-2">{{ v.tipo }}</td>
+                    <td class="p-2">{{ v.capacidad }}</td>
+                </tr>
                 {% endfor %}
-            </div>
-
-            <div class="mt-8 flex items-center justify-end gap-4">
-                <a href="{% url 'dashboard_transporte' %}" class="text-slate-500 hover:text-slate-800 font-medium">Cancelar</a>
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-lg shadow-blue-600/30">Guardar Registro</button>
-            </div>
-        </form>
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

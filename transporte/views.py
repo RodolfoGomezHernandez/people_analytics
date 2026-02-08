@@ -2,16 +2,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Avg, Count
-from django.http import HttpResponse
+from django.db.models.functions import TruncWeek
+from django.core.paginator import Paginator
+from django.http import HttpResponse, JsonResponse
 from datetime import datetime
 import openpyxl
-from openpyxl.styles import Font, PatternFill
-from django.http import JsonResponse
 
 from .models import Vehiculo, Conductor, RegistroSalida, Ruta
 from .forms import VehiculoForm, ConductorForm, RegistroGuardiaForm, EdicionAdminForm, RutaForm
-from django.db.models.functions import TruncMonth
-from django.db.models import F, ExpressionWrapper, FloatField
 
 # --- 1. SEMÁFORO: Decide a dónde va el usuario ---
 @login_required
@@ -60,29 +58,24 @@ def dashboard_transporte(request):
     if not request.user.is_staff and not request.user.is_superuser:
         return redirect('transporte_home')
 
-    registros = RegistroSalida.objects.all()
-    
-    # KPIs CORREGIDOS (Ahora usan 'valor_viaje' en vez de ruta__valor)
-    total_viajes = registros.count()
-    costo_total = registros.aggregate(Sum('valor_viaje'))['valor_viaje__sum'] or 0
-    ocupacion_promedio = registros.aggregate(Avg('ocupacion_porcentaje'))['ocupacion_porcentaje__avg'] or 0
-    
-    # Gráfico
-    viajes_por_vehiculo = registros.values('vehiculo__patente').annotate(total=Count('id'))
-    labels_v = [x['vehiculo__patente'] for x in viajes_por_vehiculo]
-    data_v = [x['total'] for x in viajes_por_vehiculo]
+    # --- A. Lógica de Paginación y Tabla (Optimizada) ---
+    # 1. Capturar el tamaño de página (10, 20, 50, 100), default 10
+    items_por_pagina = request.GET.get('page_size', '10')
+    if items_por_pagina not in ['10', '20', '50', '100']:
+        items_por_pagina = '10'
 
-    # Últimos registros para la tabla de edición
-    ultimos_registros = RegistroSalida.objects.order_by('-fecha_registro')[:10]
+    # 2. Queryset Limitado: Solo traemos los últimos 3000 para no saturar la vista
+    # Usamos select_related para evitar N+1 queries en la tabla
+    registros_tabla = RegistroSalida.objects.select_related('vehiculo', 'ruta').order_by('-fecha_registro')[:3000]
+
+    # 3. Paginador
+    paginator = Paginator(registros_tabla, int(items_por_pagina))
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     context = {
-        'total_viajes': total_viajes,
-        'costo_total': costo_total,
-        'ocupacion_promedio': round(ocupacion_promedio, 1),
-        'labels_v': labels_v,
-        'data_v': data_v,
-        'ultimos_registros': ultimos_registros, # Para la tabla con botón editar
-        'vehiculos': Vehiculo.objects.filter(activo=True),
+        'page_obj': page_obj,          # Objeto paginado para la tabla
+        'page_size': items_por_pagina, # Para mantener la selección en el dropdown
     }
     return render(request, 'transporte/dashboard_admin.html', context)
 
@@ -120,13 +113,14 @@ def exportar_excel_transporte(request):
     headers = ['Fecha', 'Vehículo', 'Ruta', 'Pasajeros', 'Costo Final', 'Usuario']
     ws.append(headers)
     
-    for r in RegistroSalida.objects.all():
+    # Aquí exportamos TODO el histórico (sin límite de 3000)
+    for r in RegistroSalida.objects.all().select_related('vehiculo', 'ruta', 'registrado_por'):
         ws.append([
             r.fecha_registro.strftime("%d/%m/%Y %H:%M"),
             r.vehiculo.patente,
             r.ruta.nombre,
             r.cantidad_pasajeros,
-            r.valor_viaje, # CORREGIDO: Usamos el valor real guardado
+            r.valor_viaje,
             r.registrado_por.username if r.registrado_por else "Sistema"
         ])
     
@@ -140,10 +134,18 @@ def crear_vehiculo(request):
         if form.is_valid():
             form.save()
             messages.success(request, 'Vehículo registrado.')
-            return redirect('dashboard_transporte')
+            return redirect('crear_vehiculo') # Recargamos para ver la tabla actualizada
     else:
         form = VehiculoForm()
-    return render(request, 'transporte/crear_vehiculo.html', {'form': form, 'titulo': 'Nuevo Vehículo'})
+    
+    # Pasamos la lista para ver los que ya están
+    vehiculos_existentes = Vehiculo.objects.filter(activo=True).order_by('patente')
+    return render(request, 'transporte/crear_vehiculo.html', {
+        'form': form, 
+        'titulo': 'Nuevo Vehículo',
+        'lista_vehiculos': vehiculos_existentes
+    })
+
 
 @login_required
 def crear_conductor(request):
@@ -152,10 +154,17 @@ def crear_conductor(request):
         if form.is_valid():
             form.save()
             messages.success(request, 'Conductor registrado.')
-            return redirect('dashboard_transporte')
+            return redirect('crear_conductor')
     else:
         form = ConductorForm()
-    return render(request, 'transporte/crear_conductor.html', {'form': form, 'titulo': 'Nuevo Conductor'})
+
+    conductores_existentes = Conductor.objects.filter(activo=True).order_by('nombre')
+    return render(request, 'transporte/crear_conductor.html', {
+        'form': form, 
+        'titulo': 'Nuevo Conductor',
+        'lista_conductores': conductores_existentes
+    })
+
 
 @login_required
 def gestion_rutas(request):
@@ -176,78 +185,53 @@ def gestion_rutas(request):
 
 @login_required
 def api_datos_dashboard(request):
-    """API que devuelve JSON para alimentar Chart.js dinámicamente"""
-    if not request.user.is_superuser:
-        return JsonResponse({'error': 'No autorizado'}, status=403)
+    if not request.user.is_superuser: return JsonResponse({'error': '403'}, status=403)
 
-    # 1. Filtros de Fecha (Default: Últimos 30 días o Todo)
     inicio = request.GET.get('inicio')
     fin = request.GET.get('fin')
-    
     registros = RegistroSalida.objects.all()
-    if inicio and fin:
-        registros = registros.filter(fecha_registro__date__range=[inicio, fin])
+    if inicio and fin: registros = registros.filter(fecha_registro__date__range=[inicio, fin])
 
-    # --- CALCULOS ---
+    # 1. Curva Semanal
+    curva_raw = registros.annotate(semana=TruncWeek('fecha_registro')).values('semana').annotate(total=Sum('valor_viaje')).order_by('semana')
+    curva_costos = [{'mes': f"Semana {x['semana'].strftime('%d/%m')}", 'total': x['total']} for x in curva_raw if x['semana']]
 
-    # A. Ocupación por Vehículo (Promedio %)
-    ocupacion_vehiculo = registros.values('vehiculo__patente').annotate(
-        avg_ocupacion=Avg('ocupacion_porcentaje')
-    ).order_by('-avg_ocupacion')
-
-    # B. Ocupación por Tipo de Vehículo
-    ocupacion_tipo = registros.values('vehiculo__tipo').annotate(
-        avg_ocupacion=Avg('ocupacion_porcentaje')
-    )
-
-    # C. Costo por Tipo de Vehículo
-    costo_tipo = registros.values('vehiculo__tipo').annotate(
-        total_costo=Sum('valor_viaje')
-    )
-
-    # D. Curva Mensual de Costos
-    curva_costos = registros.annotate(mes=TruncMonth('fecha_registro')).values('mes').annotate(
-        total=Sum('valor_viaje')
-    ).order_by('mes')
-
-    # E. Promedio Costo por Persona (General, por Vehículo, por Tipo)
-    # Fórmula: Sum(Costo Total) / Sum(Pasajeros Totales)
+    # 2. Datos existentes
+    ocupacion_vehiculo = list(registros.values('vehiculo__patente').annotate(avg_ocupacion=Avg('ocupacion_porcentaje')).order_by('-avg_ocupacion'))
+    ocupacion_tipo = list(registros.values('vehiculo__tipo').annotate(avg_ocupacion=Avg('ocupacion_porcentaje')))
+    costo_tipo = list(registros.values('vehiculo__tipo').annotate(total_costo=Sum('valor_viaje')))
     
-    # E.1 General
-    total_costo_gen = registros.aggregate(Sum('valor_viaje'))['valor_viaje__sum'] or 0
-    total_pasajeros_gen = registros.aggregate(Sum('cantidad_pasajeros'))['cantidad_pasajeros__sum'] or 1
-    costo_persona_general = total_costo_gen / total_pasajeros_gen
+    # 3. CPP General
+    tot_costo = registros.aggregate(Sum('valor_viaje'))['valor_viaje__sum'] or 0
+    tot_pax = registros.aggregate(Sum('cantidad_pasajeros'))['cantidad_pasajeros__sum'] or 1
+    cpp_gen = tot_costo / tot_pax
 
-    # E.2 Por Vehículo
-    costo_persona_vehiculo = registros.values('vehiculo__patente').annotate(
-        costo=Sum('valor_viaje'),
-        pasajeros=Sum('cantidad_pasajeros')
-    )
-    # Calculamos en Python para evitar divisiones por cero en SQL complejo
-    data_cpp_vehiculo = []
-    for item in costo_persona_vehiculo:
-        cpp = item['costo'] / item['pasajeros'] if item['pasajeros'] > 0 else 0
-        data_cpp_vehiculo.append({'label': item['vehiculo__patente'], 'value': round(cpp)})
+    # 4. CPP Vehículo y Tipo
+    cpp_vehiculo = [{'label': i['vehiculo__patente'], 'value': round(i['c']/i['p'] if i['p']>0 else 0)} 
+                    for i in registros.values('vehiculo__patente').annotate(c=Sum('valor_viaje'), p=Sum('cantidad_pasajeros'))]
+    
+    cpp_tipo = [{'label': i['vehiculo__tipo'], 'value': round(i['c']/i['p'] if i['p']>0 else 0)} 
+                for i in registros.values('vehiculo__tipo').annotate(c=Sum('valor_viaje'), p=Sum('cantidad_pasajeros'))]
 
-    # E.3 Por Tipo
-    costo_persona_tipo = registros.values('vehiculo__tipo').annotate(
-        costo=Sum('valor_viaje'),
-        pasajeros=Sum('cantidad_pasajeros')
-    )
-    data_cpp_tipo = []
-    for item in costo_persona_tipo:
-        cpp = item['costo'] / item['pasajeros'] if item['pasajeros'] > 0 else 0
-        data_cpp_tipo.append({'label': item['vehiculo__tipo'], 'value': round(cpp)})
+    # --- NUEVOS DATOS REQUERIDOS (REQ 5) ---
+    # 5. Costo Total por Ruta
+    costo_ruta = list(registros.values('ruta__nombre').annotate(total=Sum('valor_viaje')).order_by('-total'))
 
+    # 6. Costo por Pasajero por Ruta
+    cpp_ruta_raw = registros.values('ruta__nombre').annotate(c=Sum('valor_viaje'), p=Sum('cantidad_pasajeros'))
+    cpp_ruta = [{'label': i['ruta__nombre'], 'value': round(i['c']/i['p'] if i['p']>0 else 0)} for i in cpp_ruta_raw]
+    # Ordenamos por costo (opcional)
+    cpp_ruta.sort(key=lambda x: x['value'], reverse=True)
 
-    data = {
-        'ocupacion_vehiculo': list(ocupacion_vehiculo),
-        'ocupacion_tipo': list(ocupacion_tipo),
-        'costo_tipo': list(costo_tipo),
-        'curva_costos': [{'mes': x['mes'].strftime('%Y-%m'), 'total': x['total']} for x in curva_costos],
-        'cpp_general': round(costo_persona_general),
-        'cpp_vehiculo': data_cpp_vehiculo,
-        'cpp_tipo': data_cpp_tipo,
-    }
-
-    return JsonResponse(data)
+    return JsonResponse({
+        'curva_costos': curva_costos,
+        'ocupacion_vehiculo': ocupacion_vehiculo,
+        'ocupacion_tipo': ocupacion_tipo,
+        'costo_tipo': costo_tipo,
+        'cpp_general': round(cpp_gen),
+        'cpp_vehiculo': cpp_vehiculo,
+        'cpp_tipo': cpp_tipo,
+        # Nuevos:
+        'costo_ruta': costo_ruta,
+        'cpp_ruta': cpp_ruta,
+    })
