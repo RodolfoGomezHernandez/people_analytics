@@ -60,7 +60,7 @@
                 {% endif %}
                 
                 {% if request.user|has_group:"Analistas" %}
-                    <a href="{% url 'reportes' %}" 
+                    <a href="{% url 'subir_archivo' %}" 
                        class="flex items-center gap-3 p-3 rounded-lg transition
                        {% if 'reportes' in request.path %}
                            bg-blue-600 text-white shadow-lg shadow-blue-900/50

@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'asistencia',
     'reclutamiento',
     'transporte',
+    'dotacion',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

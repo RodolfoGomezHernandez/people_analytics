@@ -1,9 +1,11 @@
 from django import forms
+from .models import CargaInformacion
 
-from asistencia.models import Colaborador, Marcaje 
-
-class ImportarFichasForm(forms.Form):
-    archivo = forms.FileField(label="Seleccionar Excel de Dotación (Fichas)")
-
-class ImportarAsistenciaForm(forms.Form):
-    archivo_asistencia = forms.FileField(label="Seleccionar Excel de Asistencia (Grex)")
+class CargaArchivoForm(forms.ModelForm):
+    class Meta:
+        model = CargaInformacion
+        fields = ['tipo', 'archivo']
+        widgets = {
+            'tipo': forms.Select(attrs={'class': 'form-control'}),
+            'archivo': forms.FileInput(attrs={'class': 'form-control'}),
+        }
