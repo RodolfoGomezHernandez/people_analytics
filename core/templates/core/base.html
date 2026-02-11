@@ -60,15 +60,9 @@
                 {% endif %}
                 
                 {% if request.user|has_group:"Analistas" %}
-                    <a href="{% url 'subir_archivo' %}" 
-                       class="flex items-center gap-3 p-3 rounded-lg transition
-                       {% if 'reportes' in request.path %}
-                           bg-blue-600 text-white shadow-lg shadow-blue-900/50
-                       {% else %}
-                           text-slate-400 hover:bg-slate-800 hover:text-white
-                       {% endif %}">
-                        <i class="fa-solid fa-chart-pie"></i> Reportes & Anomalías
-                    </a>
+                    <a href="{% url 'dashboard' %}" class="...">
+                    Inicio / Carga
+                </a>
                 {% endif %}
 
                 <div class="mt-8">
