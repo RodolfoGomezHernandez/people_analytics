@@ -1,79 +1,133 @@
 {% extends 'core/base.html' %}
 
 {% block content %}
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
-        <div class="text-gray-500 text-sm uppercase font-bold">Total Dotación</div>
-        <div class="text-3xl font-bold text-gray-800">{{ kpi_total }}</div>
-        <div class="text-xs text-gray-400">Registros históricos</div>
-    </div>
-    
-    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
-        <div class="text-gray-500 text-sm uppercase font-bold">Colaboradores Activos</div>
-        <div class="text-3xl font-bold text-gray-800">{{ kpi_activos }}</div>
-        <div class="text-xs text-gray-400">Personal vigente hoy</div>
-    </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500">
-        <div class="text-gray-500 text-sm uppercase font-bold">Nuevos Ingresos</div>
-        <div class="text-3xl font-bold text-gray-800">{{ kpi_nuevos }}</div>
-        <div class="text-xs text-gray-400">Últimos 30 días</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
+        <div class="text-gray-500 text-xs uppercase font-bold">Dotación Activa</div>
+        <div class="text-3xl font-bold text-gray-800">{{ kpi_activos }}</div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-yellow-500">
+        <div class="text-gray-500 text-xs uppercase font-bold">Datos Faltantes</div>
+        <div class="text-3xl font-bold text-gray-800">{{ kpi_sin_contacto }}</div>
+        <div class="text-xs text-red-500">Email/Teléfono pendientes</div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
+        <div class="text-gray-500 text-xs uppercase font-bold">Histórico Total</div>
+        <div class="text-3xl font-bold text-gray-800">{{ kpi_total }}</div>
+    </div>
+    <div class="bg-indigo-600 rounded-xl shadow-sm p-6 text-white cursor-pointer hover:bg-indigo-700 transition" onclick="document.getElementById('uploadSection').classList.toggle('hidden')">
+        <div class="flex items-center justify-between">
+            <span class="font-bold">📤 Cargar Archivo</span>
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+        <p class="text-xs mt-2 opacity-80">Actualizar GREX</p>
     </div>
 </div>
 
-<div class="bg-white rounded-xl shadow-lg overflow-hidden">
-    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-700">📂 Centro de Carga de Información</h2>
-    </div>
-    
-    <div class="p-8">
-        <form method="post" enctype="multipart/form-data" id="uploadForm" class="space-y-6">
+<div id="uploadSection" class="hidden bg-white rounded-xl shadow-lg mb-8 border border-indigo-100">
+    <div class="p-6">
+        <h3 class="font-bold text-gray-700 mb-4">Actualizar Base de Datos</h3>
+        <form method="post" enctype="multipart/form-data" class="flex gap-4 items-end">
             {% csrf_token %}
-            
-            {% if form.errors %}
-                <div class="p-4 bg-red-50 text-red-700 rounded-lg">
-                    {{ form.errors }}
-                </div>
-            {% endif %}
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">1. ¿Qué vas a cargar?</label>
-                    {{ form.tipo }}
-                    <p class="text-xs text-gray-500 mt-1">Selecciona "Fichas" para actualizar empleados o "Asistencia" para marcajes.</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">2. Selecciona el Excel</label>
-                    {{ form.archivo }}
-                </div>
+            <div class="flex-1">
+                <label class="text-xs font-bold text-gray-500">TIPO DE ARCHIVO</label>
+                {{ form.tipo }}
             </div>
-
-            <div class="flex justify-end pt-4">
-                <button type="submit" 
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow transition duration-200 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    Procesar Archivo
-                </button>
+            <div class="flex-1">
+                <label class="text-xs font-bold text-gray-500">ARCHIVO EXCEL</label>
+                {{ form.archivo }}
             </div>
+            <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700">Procesar</button>
         </form>
     </div>
 </div>
 
-<div id="loadingModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 backdrop-blur-sm">
-    <div class="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm mx-auto">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mx-auto mb-4"></div>
-        
-        <h3 class="text-xl font-bold text-gray-800 mb-2">Procesando Información...</h3>
-        <p class="text-gray-600 text-sm">Por favor espera, estamos analizando tu Excel. Esto puede tomar unos segundos.</p>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    
+    <div class="bg-white p-6 rounded-xl shadow-sm">
+        <h3 class="text-gray-700 font-bold mb-4 text-sm uppercase">Distribución por Género</h3>
+        <canvas id="chartSexo"></canvas>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-sm">
+        <h3 class="text-gray-700 font-bold mb-4 text-sm uppercase">Rango Etario</h3>
+        <canvas id="chartEdad"></canvas>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-sm">
+        <h3 class="text-gray-700 font-bold mb-4 text-sm uppercase">Top Nacionalidades</h3>
+        <canvas id="chartNacionalidad"></canvas>
+    </div>
+</div>
+
+<div class="bg-white p-6 rounded-xl shadow-sm mb-8">
+    <h3 class="text-gray-700 font-bold mb-4 text-sm uppercase">Distribución por Comuna (Localidad)</h3>
+    <div class="h-64">
+        <canvas id="chartComuna"></canvas>
     </div>
 </div>
 
 <script>
-    document.getElementById('uploadForm').addEventListener('submit', function() {
-        // Mostrar el modal cuando se envía el formulario
-        document.getElementById('loadingModal').classList.remove('hidden');
-        document.getElementById('loadingModal').classList.add('flex');
+    const commonOptions = { responsive: true, maintainAspectRatio: false };
+
+    // 1. Chart Sexo (Doughnut)
+    new Chart(document.getElementById('chartSexo'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ chart_sexo_labels|safe }},
+            datasets: [{
+                data: {{ chart_sexo_values|safe }},
+                backgroundColor: ['#3B82F6', '#EC4899', '#10B981'],
+            }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // 2. Chart Edad (Bar)
+    new Chart(document.getElementById('chartEdad'), {
+        type: 'bar',
+        data: {
+            labels: {{ chart_edad_labels|safe }},
+            datasets: [{
+                label: 'Colaboradores',
+                data: {{ chart_edad_values|safe }},
+                backgroundColor: '#8B5CF6',
+                borderRadius: 4
+            }]
+        },
+        options: commonOptions
+    });
+
+    // 3. Chart Nacionalidad (Pie)
+    new Chart(document.getElementById('chartNacionalidad'), {
+        type: 'pie',
+        data: {
+            labels: {{ chart_nacionalidad_labels|safe }},
+            datasets: [{
+                data: {{ chart_nacionalidad_values|safe }},
+                backgroundColor: ['#F59E0B', '#EF4444', '#10B981', '#6366F1', '#6B7280'],
+            }]
+        }
+    });
+
+    // 4. Chart Comuna (Bar Horizontal)
+    new Chart(document.getElementById('chartComuna'), {
+        type: 'bar',
+        data: {
+            labels: {{ chart_comuna_labels|safe }},
+            datasets: [{
+                label: 'Residencia',
+                data: {{ chart_comuna_values|safe }},
+                backgroundColor: '#10B981',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y', // Hace que sea horizontal
+            ...commonOptions
+        }
     });
 </script>
 {% endblock %}
