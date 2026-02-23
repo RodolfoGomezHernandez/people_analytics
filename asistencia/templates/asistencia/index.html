@@ -1,0 +1,132 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Asistencia | Aurora HR{% endblock %}
+{% block header_title %}Control de Asistencia{% endblock %}
+
+{% block content %}
+
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+
+    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
+        <p class="text-gray-500 text-xs uppercase font-bold mb-1">Registros Hoy</p>
+        <p class="text-3xl font-bold text-gray-800">{{ total_hoy }}</p>
+        <p class="text-xs text-slate-400 mt-1">{{ hoy|date:"d/m/Y" }}</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-yellow-400">
+        <p class="text-gray-500 text-xs uppercase font-bold mb-1">Sin Salida (Hoy)</p>
+        <p class="text-3xl font-bold text-gray-800">{{ sin_salida_hoy }}</p>
+        <p class="text-xs text-yellow-600 mt-1">Marca salida pendiente</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-red-400">
+        <p class="text-gray-500 text-xs uppercase font-bold mb-1">Anomalías (Hoy)</p>
+        <p class="text-3xl font-bold text-gray-800">{{ anomalias_hoy }}</p>
+        <p class="text-xs text-red-500 mt-1">Marcas irregulares</p>
+    </div>
+
+    <button onclick="document.getElementById('uploadSection').classList.toggle('hidden')"
+        class="bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm p-6 text-white flex items-center justify-between transition cursor-pointer">
+        <div>
+            <p class="font-bold text-sm">📤 Cargar Estadía</p>
+            <p class="text-xs mt-1 opacity-80">Reporte GREX (.xlsx)</p>
+        </div>
+        <i class="fa-solid fa-chevron-down"></i>
+    </button>
+</div>
+
+<div id="uploadSection" class="hidden bg-white rounded-xl shadow-sm border border-emerald-100 mb-8">
+    <div class="p-6">
+        <h3 class="font-bold text-slate-700 mb-1">Importar Reporte de Estadía</h3>
+        <p class="text-xs text-slate-400 mb-4">
+            Exporta el <strong>Reporte de Estadía</strong> desde GREX y cárgalo aquí.
+            Puedes cargar el mismo período múltiples veces, el sistema actualizará los registros.
+        </p>
+        <form method="post" enctype="multipart/form-data" class="flex flex-col sm:flex-row gap-4 items-end">
+            {% csrf_token %}
+            <div class="flex-1">
+                <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Archivo Excel</label>
+                {{ form.archivo }}
+                {% if form.archivo.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.archivo.errors.0 }}</p>
+                {% endif %}
+            </div>
+            <button type="submit"
+                class="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-bold transition shadow-sm whitespace-nowrap">
+                <i class="fa-solid fa-upload mr-2"></i>Procesar
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if ultimas_fechas %}
+<div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+    <h3 class="font-bold text-slate-700 text-xs uppercase tracking-wider mb-4">Últimos períodos cargados</h3>
+    <div class="flex flex-wrap gap-2">
+        {% for fd in ultimas_fechas %}
+        <span class="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1.5 rounded-full">
+            {{ fd.fecha|date:"d/m/Y" }}
+        </span>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if registros_hoy %}
+<div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+    <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+        <h3 class="font-bold text-slate-700 text-sm">Registros de Hoy ({{ hoy|date:"d/m/Y" }})</h3>
+        <span class="text-xs text-slate-400">Mostrando hasta 50 registros</span>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+            <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+                <tr>
+                    <th class="px-4 py-3">Colaborador</th>
+                    <th class="px-4 py-3">Sección</th>
+                    <th class="px-4 py-3 text-center">Entrada</th>
+                    <th class="px-4 py-3 text-center">Salida</th>
+                    <th class="px-4 py-3 text-center">Estado</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for reg in registros_hoy %}
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-3 font-medium text-slate-800">
+                        {{ reg.colaborador.nombre_completo }}
+                        <span class="block text-xs text-slate-400">{{ reg.colaborador.rut }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-slate-500 text-xs">
+                        {{ reg.colaborador.seccion|default:"—" }}
+                    </td>
+                    <td class="px-4 py-3 text-center font-mono text-sm
+                        {% if reg.hora_entrada %}text-green-700{% else %}text-slate-300{% endif %}">
+                        {{ reg.hora_entrada|time:"H:i"|default:"—" }}
+                    </td>
+                    <td class="px-4 py-3 text-center font-mono text-sm
+                        {% if reg.hora_salida %}text-blue-700{% else %}text-red-400{% endif %}">
+                        {{ reg.hora_salida|time:"H:i"|default:"—" }}
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        {% if reg.anomalias.exists %}
+                            <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">Anomalía</span>
+                        {% else %}
+                            <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">OK</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% else %}
+<div class="bg-white rounded-xl shadow-sm border border-dashed border-slate-300 p-16 text-center">
+    <i class="fa-solid fa-clock text-4xl text-slate-300 mb-4"></i>
+    <p class="text-slate-500 font-medium">No hay registros de asistencia para hoy.</p>
+    <p class="text-slate-400 text-sm mt-1">Carga el <strong>Reporte de Estadía</strong> desde GREX para visualizar los datos.</p>
+</div>
+{% endif %}
+
+{% endblock %}

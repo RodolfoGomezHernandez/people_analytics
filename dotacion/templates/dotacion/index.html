@@ -1,0 +1,145 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Dotación | Aurora HR{% endblock %}
+{% block header_title %}Dotación{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- ── KPIs ─────────────────────────────────────────── -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+
+    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
+        <p class="text-gray-500 text-xs uppercase font-bold mb-1">Dotación Vigente</p>
+        <p class="text-3xl font-bold text-gray-800">{{ kpi_vigentes }}</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-slate-400">
+        <p class="text-gray-500 text-xs uppercase font-bold mb-1">Histórico Total</p>
+        <p class="text-3xl font-bold text-gray-800">{{ kpi_historico }}</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-yellow-400">
+        <p class="text-gray-500 text-xs uppercase font-bold mb-1">Datos Faltantes</p>
+        <p class="text-3xl font-bold text-gray-800">{{ kpi_sin_contacto }}</p>
+        <p class="text-xs text-yellow-600 mt-1">Sin email o teléfono</p>
+    </div>
+
+    <button onclick="document.getElementById('uploadSection').classList.toggle('hidden')"
+        class="bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm p-6 text-white flex items-center justify-between transition cursor-pointer">
+        <div>
+            <p class="font-bold text-sm">📤 Cargar Fichas</p>
+            <p class="text-xs mt-1 opacity-80">Reporte GREX (.xlsx)</p>
+        </div>
+        <i class="fa-solid fa-chevron-down"></i>
+    </button>
+</div>
+
+<!-- ── Formulario de carga ───────────────────────────── -->
+<div id="uploadSection" class="hidden bg-white rounded-xl shadow-sm border border-indigo-100 mb-8">
+    <div class="p-6">
+        <h3 class="font-bold text-slate-700 mb-1">Actualizar Dotación</h3>
+        <p class="text-xs text-slate-400 mb-4">
+            Exporta el <strong>Reporte de Fichas</strong> desde GREX y cárgalo aquí.
+            El sistema actualizará colaboradores existentes y creará nuevos.
+        </p>
+        <form method="post" enctype="multipart/form-data" class="flex flex-col sm:flex-row gap-4 items-end">
+            {% csrf_token %}
+            <div class="flex-1">
+                <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Archivo Excel</label>
+                {{ form.archivo }}
+                {% if form.archivo.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.archivo.errors.0 }}</p>
+                {% endif %}
+            </div>
+            <button type="submit"
+                class="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-bold transition shadow-sm whitespace-nowrap">
+                <i class="fa-solid fa-upload mr-2"></i>Procesar
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if kpi_vigentes > 0 %}
+<!-- ── Gráficos ──────────────────────────────────────── -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+
+    <div class="bg-white p-6 rounded-xl shadow-sm">
+        <h3 class="text-slate-600 font-bold mb-4 text-xs uppercase tracking-wider">Distribución por Género</h3>
+        <canvas id="chartSexo" height="220"></canvas>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-sm">
+        <h3 class="text-slate-600 font-bold mb-4 text-xs uppercase tracking-wider">Rango Etario</h3>
+        <canvas id="chartEdad" height="220"></canvas>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-sm">
+        <h3 class="text-slate-600 font-bold mb-4 text-xs uppercase tracking-wider">Top Nacionalidades</h3>
+        <canvas id="chartNacionalidad" height="220"></canvas>
+    </div>
+</div>
+
+<div class="bg-white p-6 rounded-xl shadow-sm mb-8">
+    <h3 class="text-slate-600 font-bold mb-4 text-xs uppercase tracking-wider">Distribución por Comuna</h3>
+    <div class="h-64">
+        <canvas id="chartComuna"></canvas>
+    </div>
+</div>
+
+<script>
+    new Chart(document.getElementById('chartSexo'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ chart_sexo_labels|safe }},
+            datasets: [{ data: {{ chart_sexo_values|safe }},
+                backgroundColor: ['#3B82F6', '#EC4899', '#10B981', '#F59E0B'] }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } }, responsive: true }
+    });
+
+    new Chart(document.getElementById('chartEdad'), {
+        type: 'bar',
+        data: {
+            labels: {{ chart_edad_labels|safe }},
+            datasets: [{ label: 'Colaboradores', data: {{ chart_edad_values|safe }},
+                backgroundColor: '#8B5CF6', borderRadius: 4 }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    new Chart(document.getElementById('chartNacionalidad'), {
+        type: 'pie',
+        data: {
+            labels: {{ chart_nacionalidad_labels|safe }},
+            datasets: [{ data: {{ chart_nacionalidad_values|safe }},
+                backgroundColor: ['#F59E0B', '#EF4444', '#10B981', '#6366F1', '#6B7280', '#3B82F6'] }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } }, responsive: true }
+    });
+
+    new Chart(document.getElementById('chartComuna'), {
+        type: 'bar',
+        data: {
+            labels: {{ chart_comuna_labels|safe }},
+            datasets: [{ label: 'Residencia', data: {{ chart_comuna_values|safe }},
+                backgroundColor: '#10B981', borderRadius: 4 }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } }
+        }
+    });
+</script>
+
+{% else %}
+<div class="bg-white rounded-xl shadow-sm border border-dashed border-slate-300 p-16 text-center">
+    <i class="fa-solid fa-users text-4xl text-slate-300 mb-4"></i>
+    <p class="text-slate-500 font-medium">No hay colaboradores cargados aún.</p>
+    <p class="text-slate-400 text-sm mt-1">Usa el botón <strong>"Cargar Fichas"</strong> para importar el primer reporte.</p>
+</div>
+{% endif %}
+
+{% endblock %}

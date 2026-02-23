@@ -1,133 +1,57 @@
 {% extends 'core/base.html' %}
 
+{% block title %}Inicio | Aurora HR{% endblock %}
+{% block header_title %}Panel Principal{% endblock %}
+
 {% block content %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<div class="flex flex-col items-center justify-center h-full text-center py-20">
 
-<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
-        <div class="text-gray-500 text-xs uppercase font-bold">Dotación Activa</div>
-        <div class="text-3xl font-bold text-gray-800">{{ kpi_activos }}</div>
-    </div>
-    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-yellow-500">
-        <div class="text-gray-500 text-xs uppercase font-bold">Datos Faltantes</div>
-        <div class="text-3xl font-bold text-gray-800">{{ kpi_sin_contacto }}</div>
-        <div class="text-xs text-red-500">Email/Teléfono pendientes</div>
-    </div>
-    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
-        <div class="text-gray-500 text-xs uppercase font-bold">Histórico Total</div>
-        <div class="text-3xl font-bold text-gray-800">{{ kpi_total }}</div>
-    </div>
-    <div class="bg-indigo-600 rounded-xl shadow-sm p-6 text-white cursor-pointer hover:bg-indigo-700 transition" onclick="document.getElementById('uploadSection').classList.toggle('hidden')">
-        <div class="flex items-center justify-between">
-            <span class="font-bold">📤 Cargar Archivo</span>
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-12 max-w-lg w-full">
+        <div class="h-16 w-16 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 text-3xl mx-auto mb-6">
+            <i class="fa-solid fa-seedling"></i>
         </div>
-        <p class="text-xs mt-2 opacity-80">Actualizar GREX</p>
+        <h1 class="text-2xl font-bold text-slate-800 mb-2">Bienvenido a Aurora HR</h1>
+        <p class="text-slate-500 text-sm mb-8">Selecciona un módulo del menú lateral para comenzar.</p>
+
+        <div class="grid grid-cols-2 gap-4 text-left">
+
+            <a href="{% url 'dotacion_index' %}"
+               class="group p-4 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition">
+                <div class="text-blue-500 text-xl mb-2">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <p class="font-bold text-slate-700 text-sm">Dotación</p>
+                <p class="text-xs text-slate-400 mt-1">Gestión de colaboradores</p>
+            </a>
+
+            <a href="{% url 'asistencia_index' %}"
+               class="group p-4 rounded-xl border border-slate-200 hover:border-green-400 hover:bg-green-50 transition">
+                <div class="text-green-500 text-xl mb-2">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+                <p class="font-bold text-slate-700 text-sm">Asistencia</p>
+                <p class="text-xs text-slate-400 mt-1">Control de estadía diaria</p>
+            </a>
+
+            <a href="{% url 'transporte_home' %}"
+               class="group p-4 rounded-xl border border-slate-200 hover:border-yellow-400 hover:bg-yellow-50 transition">
+                <div class="text-yellow-500 text-xl mb-2">
+                    <i class="fa-solid fa-bus"></i>
+                </div>
+                <p class="font-bold text-slate-700 text-sm">Transporte</p>
+                <p class="text-xs text-slate-400 mt-1">Control de flota y rutas</p>
+            </a>
+
+            <a href="{% url 'crear_solicitud' %}"
+               class="group p-4 rounded-xl border border-slate-200 hover:border-purple-400 hover:bg-purple-50 transition">
+                <div class="text-purple-500 text-xl mb-2">
+                    <i class="fa-solid fa-user-plus"></i>
+                </div>
+                <p class="font-bold text-slate-700 text-sm">Reclutamiento</p>
+                <p class="text-xs text-slate-400 mt-1">Solicitudes de personal</p>
+            </a>
+
+        </div>
     </div>
 </div>
-
-<div id="uploadSection" class="hidden bg-white rounded-xl shadow-lg mb-8 border border-indigo-100">
-    <div class="p-6">
-        <h3 class="font-bold text-gray-700 mb-4">Actualizar Base de Datos</h3>
-        <form method="post" enctype="multipart/form-data" class="flex gap-4 items-end">
-            {% csrf_token %}
-            <div class="flex-1">
-                <label class="text-xs font-bold text-gray-500">TIPO DE ARCHIVO</label>
-                {{ form.tipo }}
-            </div>
-            <div class="flex-1">
-                <label class="text-xs font-bold text-gray-500">ARCHIVO EXCEL</label>
-                {{ form.archivo }}
-            </div>
-            <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700">Procesar</button>
-        </form>
-    </div>
-</div>
-
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-    
-    <div class="bg-white p-6 rounded-xl shadow-sm">
-        <h3 class="text-gray-700 font-bold mb-4 text-sm uppercase">Distribución por Género</h3>
-        <canvas id="chartSexo"></canvas>
-    </div>
-
-    <div class="bg-white p-6 rounded-xl shadow-sm">
-        <h3 class="text-gray-700 font-bold mb-4 text-sm uppercase">Rango Etario</h3>
-        <canvas id="chartEdad"></canvas>
-    </div>
-
-    <div class="bg-white p-6 rounded-xl shadow-sm">
-        <h3 class="text-gray-700 font-bold mb-4 text-sm uppercase">Top Nacionalidades</h3>
-        <canvas id="chartNacionalidad"></canvas>
-    </div>
-</div>
-
-<div class="bg-white p-6 rounded-xl shadow-sm mb-8">
-    <h3 class="text-gray-700 font-bold mb-4 text-sm uppercase">Distribución por Comuna (Localidad)</h3>
-    <div class="h-64">
-        <canvas id="chartComuna"></canvas>
-    </div>
-</div>
-
-<script>
-    const commonOptions = { responsive: true, maintainAspectRatio: false };
-
-    // 1. Chart Sexo (Doughnut)
-    new Chart(document.getElementById('chartSexo'), {
-        type: 'doughnut',
-        data: {
-            labels: {{ chart_sexo_labels|safe }},
-            datasets: [{
-                data: {{ chart_sexo_values|safe }},
-                backgroundColor: ['#3B82F6', '#EC4899', '#10B981'],
-            }]
-        },
-        options: { plugins: { legend: { position: 'bottom' } } }
-    });
-
-    // 2. Chart Edad (Bar)
-    new Chart(document.getElementById('chartEdad'), {
-        type: 'bar',
-        data: {
-            labels: {{ chart_edad_labels|safe }},
-            datasets: [{
-                label: 'Colaboradores',
-                data: {{ chart_edad_values|safe }},
-                backgroundColor: '#8B5CF6',
-                borderRadius: 4
-            }]
-        },
-        options: commonOptions
-    });
-
-    // 3. Chart Nacionalidad (Pie)
-    new Chart(document.getElementById('chartNacionalidad'), {
-        type: 'pie',
-        data: {
-            labels: {{ chart_nacionalidad_labels|safe }},
-            datasets: [{
-                data: {{ chart_nacionalidad_values|safe }},
-                backgroundColor: ['#F59E0B', '#EF4444', '#10B981', '#6366F1', '#6B7280'],
-            }]
-        }
-    });
-
-    // 4. Chart Comuna (Bar Horizontal)
-    new Chart(document.getElementById('chartComuna'), {
-        type: 'bar',
-        data: {
-            labels: {{ chart_comuna_labels|safe }},
-            datasets: [{
-                label: 'Residencia',
-                data: {{ chart_comuna_values|safe }},
-                backgroundColor: '#10B981',
-                borderRadius: 4
-            }]
-        },
-        options: {
-            indexAxis: 'y', // Hace que sea horizontal
-            ...commonOptions
-        }
-    });
-</script>
 {% endblock %}

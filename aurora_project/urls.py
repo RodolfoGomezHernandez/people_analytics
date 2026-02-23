@@ -1,19 +1,19 @@
 from django.contrib import admin
 from django.urls import path, include
-from django.conf import settings 
+from django.conf import settings
 from django.conf.urls.static import static
-from core.views import dashboard  # Solo importamos dashboard, subir_archivo ya no se usa directo
+from core.views import dashboard
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),
-    
-    # Ruta principal al Dashboard bonito
+
+    # Dashboard principal (raíz)
     path('', dashboard, name='dashboard'),
-    
-    # Eliminamos la ruta 'subir-informacion/' porque ya está integrada
-    # path('subir-informacion/', ... ), 
-    
+
+    # Módulos independientes
+    path('dotacion/', include('dotacion.urls')),
+    path('asistencia/', include('asistencia.urls')),
     path('reclutamiento/', include('reclutamiento.urls')),
     path('transporte/', include('transporte.urls')),
 ]
