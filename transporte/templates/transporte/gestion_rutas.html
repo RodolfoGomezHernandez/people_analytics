@@ -4,8 +4,8 @@
 <div class="max-w-5xl mx-auto">
     <div class="flex justify-between items-center mb-8">
         <div>
-            <h2 class="text-2xl font-bold text-slate-800">Gestión de Rutas</h2>
-            <p class="text-slate-500">Define los trayectos disponibles para la garita.</p>
+            <h2 class="text-2xl font-bold text-slate-800">Gestión de Rutas Base</h2>
+            <p class="text-slate-500">Define los trayectos. El sistema invertirá el orden lógicamente si el guardia marca "Entrada".</p>
         </div>
         <a href="{% url 'dashboard_transporte' %}" class="bg-slate-200 text-slate-700 hover:bg-slate-300 px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition">
             <i class="fa-solid fa-arrow-left"></i> Volver al Dashboard
@@ -40,7 +40,7 @@
                     <tr>
                         <th class="p-4">Nombre Corto</th>
                         <th class="p-4">Trayecto (Origen -> Destino)</th>
-                        <th class="p-4 text-center">Estado</th>
+                        <th class="p-4 text-center">Acción</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -48,20 +48,18 @@
                     <tr class="border-b hover:bg-slate-50">
                         <td class="p-4 font-bold text-slate-800">{{ r.nombre }}</td>
                         <td class="p-4 flex items-center gap-2">
-                            <span class="text-slate-600">{{ r.origen }}</span>
+                            <span class="text-slate-600 font-bold">{{ r.origen }}</span>
                             <i class="fa-solid fa-arrow-right text-slate-300 text-xs"></i>
-                            <span class="text-slate-600">{{ r.destino }}</span>
+                            <span class="text-slate-600 font-bold">{{ r.destino }}</span>
                         </td>
                         <td class="p-4 text-center">
-                            <span class="text-green-700 bg-green-100 px-3 py-1 rounded-full text-xs font-bold border border-green-200">Activa</span>
+                            <a href="{% url 'deshabilitar_ruta' r.id %}" onclick="return confirm('¿Deshabilitar esta ruta? No se borrarán los viajes históricos.')" class="text-red-500 hover:text-red-700 font-bold bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg border border-red-200 transition">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="3" class="p-8 text-center text-slate-400">
-                            No hay rutas registradas. Usa el formulario de la izquierda.
-                        </td>
-                    </tr>
+                    <tr><td colspan="3" class="p-8 text-center text-slate-400">No hay rutas registradas.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

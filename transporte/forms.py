@@ -1,7 +1,6 @@
 from django import forms
-from .models import Vehiculo, Conductor, RegistroSalida
-from core.validators import validar_rut 
 from .models import Vehiculo, Conductor, RegistroSalida, Ruta
+from core.validators import validar_rut 
 
 # --- MIXIN DE ESTILOS Y VALIDACIÓN BASE ---
 class EstiloFormMixin:
@@ -9,13 +8,19 @@ class EstiloFormMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
-            # Estilo visual
-            field.widget.attrs.update({
-                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors'
-            })
+            # Estilo visual diferenciado para checkboxes
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.update({
+                    'class': 'w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500'
+                })
+            else:
+                field.widget.attrs.update({
+                    'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors'
+                })
             
-            # Validación: Forzamos requerido (excepto campos opcionales lógicos)
-            if field_name not in ['empresa_externa', 'activo', 'motivo']:
+            # Validación: Forzamos requerido (excepto campos opcionales)
+            campos_opcionales = ['empresa_externa', 'nombre_empresa_externa', 'activo', 'motivo', 'salidas_multiples', 'telefono']
+            if field_name not in campos_opcionales:
                 field.required = True
                 field.widget.attrs.update({'required': 'required'})
 
@@ -23,8 +28,7 @@ class EstiloFormMixin:
 class VehiculoForm(EstiloFormMixin, forms.ModelForm):
     class Meta:
         model = Vehiculo
-        # ACTUALIZADO: Usamos 'tarifa_base' en lugar de 'costo_fijo_diario'
-        fields = ['patente', 'tipo', 'marca', 'modelo', 'capacidad', 'tarifa_base']
+        fields = ['patente', 'tipo', 'capacidad', 'tarifa_base']
         widgets = {
             'tipo': forms.Select(attrs={'class': 'bg-white'}),
         }
@@ -33,7 +37,6 @@ class VehiculoForm(EstiloFormMixin, forms.ModelForm):
             'capacidad': 'Capacidad de Pasajeros'
         }
     
-    # Mantenemos tu lógica de limpiar patente
     def clean_patente(self):
         patente = self.cleaned_data.get('patente')
         if patente:
@@ -44,16 +47,19 @@ class VehiculoForm(EstiloFormMixin, forms.ModelForm):
 class ConductorForm(EstiloFormMixin, forms.ModelForm):
     class Meta:
         model = Conductor
-        fields = ['nombre', 'rut', 'telefono', 'empresa_externa']
+        # NUEVO: Se agregó 'nombre_empresa_externa'
+        fields = ['nombre', 'rut', 'telefono', 'empresa_externa', 'nombre_empresa_externa']
         labels = {
             'rut': 'RUT',
-            'telefono': 'Teléfono de Contacto'
+            'telefono': 'Teléfono de Contacto',
+            'empresa_externa': '¿Es conductor externo?',
+            'nombre_empresa_externa': 'Nombre Empresa Externa'
         }
         help_texts = {
-            'rut': 'Ej: 12.345.678-9 (Validamos el dígito verificador)'
+            'rut': 'Ej: 12.345.678-9',
+            'nombre_empresa_externa': 'Obligatorio si es conductor externo.'
         }
 
-    # Mantenemos tu lógica de limpiar nombres (Mayúsculas + Sin Tildes + Con Ñ)
     def clean_nombre(self):
         nombre = self.cleaned_data.get('nombre')
         if nombre:
@@ -63,12 +69,9 @@ class ConductorForm(EstiloFormMixin, forms.ModelForm):
                 nombre = nombre.replace(accented, unaccented)
         return nombre
 
-    # Mantenemos tu lógica de validar y formatear RUT
     def clean_rut(self):
         rut = self.cleaned_data.get('rut')
-        validar_rut(rut) # Validador matemático
-        
-        # Formato: XX.XXX.XXX-X
+        validar_rut(rut) 
         rut_limpio = rut.upper().replace("-", "").replace(".", "")
         cuerpo = rut_limpio[:-1]
         dv = rut_limpio[-1]
@@ -78,22 +81,39 @@ class ConductorForm(EstiloFormMixin, forms.ModelForm):
             raise forms.ValidationError("Error al formatear el RUT.")
         return rut_formateado
 
+    # NUEVO: Validación cruzada para la empresa externa
+    def clean(self):
+        cleaned_data = super().clean()
+        es_externo = cleaned_data.get('empresa_externa')
+        nombre_emp = cleaned_data.get('nombre_empresa_externa')
+        if es_externo and not nombre_emp:
+            self.add_error('nombre_empresa_externa', 'Debe indicar el nombre de la empresa externa.')
+        return cleaned_data
+
 # --- 3. FORMULARIO GUARDIA (REGISTRO RÁPIDO) ---
 class RegistroGuardiaForm(EstiloFormMixin, forms.ModelForm):
+    # NUEVO: Checkbox para mantener la ventana abierta
+    salidas_multiples = forms.BooleanField(
+        required=False, 
+        label="Registro múltiple (Mantener ventana abierta)",
+    )
+
     class Meta:
         model = RegistroSalida
-        # El guardia solo ve lo operativo, NO ve precios
-        fields = ['ruta', 'vehiculo', 'conductor', 'cantidad_pasajeros']
+        # NUEVO: Se agregó 'tipo_movimiento'
+        fields = ['tipo_movimiento', 'ruta', 'vehiculo', 'conductor', 'cantidad_pasajeros', 'paradas_intermedias']
         widgets = {
+            'tipo_movimiento': forms.Select(attrs={'class': 'bg-white font-bold text-blue-700'}),
             'ruta': forms.Select(attrs={'class': 'bg-white'}),
             'vehiculo': forms.Select(attrs={'class': 'bg-white'}),
             'conductor': forms.Select(attrs={'class': 'bg-white'}),
+            'paradas_intermedias': forms.HiddenInput(), 
         }
         labels = {
-            'cantidad_pasajeros': 'Pasajeros a Bordo'
+            'cantidad_pasajeros': 'Pasajeros a Bordo',
+            'tipo_movimiento': '¿Entrada o Salida?'
         }
 
-    # Mantenemos tu validación de capacidad vs pasajeros
     def clean(self):
         cleaned_data = super().clean()
         vehiculo = cleaned_data.get('vehiculo')
@@ -103,21 +123,19 @@ class RegistroGuardiaForm(EstiloFormMixin, forms.ModelForm):
             if pasajeros > vehiculo.capacidad:
                 raise forms.ValidationError(f"¡Error! El vehículo {vehiculo.modelo} solo acepta {vehiculo.capacidad} pasajeros.")
 
-# --- 4. NUEVO: FORMULARIO ADMIN (EDICIÓN COMPLETA) ---
+# --- 4. FORMULARIO ADMIN (EDICIÓN COMPLETA) ---
 class EdicionAdminForm(EstiloFormMixin, forms.ModelForm):
     class Meta:
         model = RegistroSalida
-        # La admin puede editar TODO, incluido el dinero (valor_viaje)
-        fields = ['ruta', 'vehiculo', 'conductor', 'cantidad_pasajeros', 'valor_viaje']
+        # AGREGAMOS 'paradas_intermedias' al final
+        fields = ['tipo_movimiento', 'ruta', 'vehiculo', 'conductor', 'cantidad_pasajeros', 'valor_viaje', 'paradas_intermedias']
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Destacamos el campo de dinero visualmente para la jefa
         if 'valor_viaje' in self.fields:
             self.fields['valor_viaje'].widget.attrs.update({
                 'class': 'w-full px-4 py-2 border border-yellow-400 bg-yellow-50 rounded-lg font-bold text-slate-700'
             })
-
 
 class RutaForm(EstiloFormMixin, forms.ModelForm):
     class Meta:

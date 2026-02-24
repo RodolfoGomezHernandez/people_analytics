@@ -1,7 +1,8 @@
 {% extends 'core/base.html' %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto mt-10 relative"> {% if request.user.is_superuser %}
+<div class="max-w-6xl mx-auto mt-10 relative"> 
+    {% if request.user.is_superuser %}
     <a href="{% url 'dashboard_transporte' %}" class="absolute -top-12 right-0 bg-slate-200 text-slate-700 hover:bg-slate-300 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition shadow-sm">
         <i class="fa-solid fa-arrow-left"></i> Volver al Dashboard
     </a>
@@ -18,82 +19,256 @@
         </div>
     </div>
 
-    <div class="bg-white p-8 rounded-b-xl shadow-xl border border-slate-200">
-        
+    <div class="bg-white p-8 rounded-b-xl shadow-xl border border-slate-200 mb-8">
         {% if messages %}
             {% for message in messages %}
-            <div class="mb-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded shadow-sm flex items-center gap-3">
-                <i class="fa-solid fa-circle-check"></i> {{ message }}
+            <div class="mb-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded shadow-sm flex items-center gap-3 font-bold">
+                <i class="fa-solid fa-circle-check text-xl"></i> {{ message }}
             </div>
             {% endfor %}
         {% endif %}
 
-        <form method="post">
+        <form method="post" id="formGarita" onsubmit="prepararParadas()">
             {% csrf_token %}
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-2">Destino / Ruta</label>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
+                <div class="xl:col-span-1">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Movimiento</label>
+                    {{ form.tipo_movimiento }}
+                </div>
+                <div class="xl:col-span-1">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Ruta Base</label>
                     {{ form.ruta }}
                 </div>
-                <div>
+                <div class="xl:col-span-1">
                     <label class="block text-sm font-bold text-slate-700 mb-2">Vehículo (Patente)</label>
                     {{ form.vehiculo }}
                 </div>
-                <div>
+                <div class="xl:col-span-1">
                     <label class="block text-sm font-bold text-slate-700 mb-2">Conductor</label>
                     {{ form.conductor }}
                 </div>
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-2">Pasajeros a Bordo</label>
+                <div class="xl:col-span-1">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Pasajeros</label>
                     {{ form.cantidad_pasajeros }}
+                    {% if form.cantidad_pasajeros.errors %}
+                        <p class="text-red-500 text-xs font-bold mt-1">{{ form.cantidad_pasajeros.errors.0 }}</p>
+                    {% endif %}
                 </div>
             </div>
 
-            <button type="submit" class="w-full mt-8 bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl text-xl font-bold transition shadow-lg shadow-green-600/30 flex items-center justify-center gap-3">
-                <i class="fa-solid fa-paper-plane"></i> REGISTRAR SALIDA
-            </button>
+            <div class="flex flex-col md:flex-row items-center justify-between mt-8 gap-4 border-t pt-6">
+                <div class="w-full mt-6 border-t pt-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <input type="checkbox" id="checkParadas" class="w-5 h-5 text-blue-600 rounded cursor-pointer">
+                        <label for="checkParadas" class="font-bold text-blue-900 cursor-pointer">Añadir Paradas Intermedias</label>
+                    </div>
+                    
+                    <div id="contenedorParadas" class="hidden space-y-3 bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6 w-full">
+                        <div id="listaParadas" class="space-y-2"></div>
+                        <button type="button" id="btnAgregarParada" class="bg-blue-200 text-blue-800 px-4 py-2 rounded font-bold text-sm hover:bg-blue-300 transition">
+                            <i class="fa-solid fa-plus"></i> Añadir otra parada
+                        </button>
+                    </div>
+                    <input type="hidden" name="paradas_intermedias" id="paradasHidden">
+                </div>
+                <button type="submit" class="w-full md:w-auto px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-base font-bold transition shadow-md shadow-green-600/30 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i> REGISTRAR MOVIMIENTO
+                </button>
+            </div>
         </form>
     </div>
 
-    <div class="mt-8">
-        <h3 class="text-slate-500 font-bold mb-4 uppercase text-xs tracking-wider">Últimas salidas registradas hoy</h3>
-        <div class="bg-white rounded-lg shadow-sm overflow-hidden border border-slate-200">
-            <table class="w-full text-sm">
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <h3 class="font-bold text-slate-700 mb-4 border-b pb-2">Historial de Movimientos</h3>
+        
+        <div class="overflow-x-auto min-h-[250px]">
+            <table class="w-full text-sm text-left">
                 <thead class="bg-slate-50 text-slate-500">
                     <tr>
-                        <th class="p-3 text-left">Hora</th>
-                        <th class="p-3 text-left">Vehículo</th>
-                        <th class="p-3 text-left">Destino</th>
-                        <th class="p-3 text-center">Pasajeros</th>
+                        <th class="p-3">Hora</th>
+                        <th class="p-3">Mov.</th>
+                        <th class="p-3">Patente</th>
+                        <th class="p-3">Ruta</th>
+                        <th class="p-3">Origen <i class="fa-solid fa-arrow-right mx-1"></i> Destino</th>
+                        <th class="p-3 text-center">Trayecto</th>
+                        <th class="p-3 text-center">Pax</th>
+                        <th class="p-3 text-center">Conductor</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for reg in registros %}
-                    <tr class="border-t border-slate-100 hover:bg-slate-50">
-                        <td class="p-3 font-mono text-blue-600 font-bold">{{ reg.fecha_registro|date:"H:i" }}</td>
-                        <td class="p-3 font-bold">{{ reg.vehiculo.patente }}</td>
-                        <td class="p-3">{{ reg.ruta.nombre }}</td>
+                    {% for reg in page_obj %}
+                    <tr class="border-t hover:bg-slate-50">
+                        <td class="p-3 font-mono text-blue-600 font-bold whitespace-nowrap">{{ reg.fecha_registro|date:"d/m H:i" }}</td>
+                        <td class="p-3">
+                            {% if reg.tipo_movimiento == 'ENTRADA' %}
+                            <span class="text-blue-600 font-bold text-xs">ENTRADA</span>
+                            {% else %}
+                            <span class="text-orange-500 font-bold text-xs">SALIDA</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-3 font-bold text-slate-800">{{ reg.vehiculo.patente }}</td>
+                        <td class="p-3 text-xs text-slate-500">{{ reg.ruta.nombre }}</td>
+                        
+                        <td class="p-3 font-medium">
+                            {% if reg.tipo_movimiento == 'ENTRADA' %}
+                                {{ reg.ruta.destino }} <i class="fa-solid fa-arrow-right text-slate-300 mx-1"></i> {{ reg.ruta.origen }}
+                            {% else %}
+                                {{ reg.ruta.origen }} <i class="fa-solid fa-arrow-right text-slate-300 mx-1"></i> {{ reg.ruta.destino }}
+                            {% endif %}
+                        </td>
                         <td class="p-3 text-center">
-                            <span class="bg-slate-100 px-2 py-1 rounded-full font-bold text-slate-600">{{ reg.cantidad_pasajeros }}</span>
+                            {% if reg.paradas_intermedias %}
+                            <button type="button" 
+                                onclick="verRuta('{{ reg.ruta.origen|escapejs }}', '{{ reg.paradas_intermedias|escapejs }}', '{{ reg.ruta.destino|escapejs }}', '{{ reg.tipo_movimiento }}')"
+                                class="bg-purple-100 text-purple-700 hover:bg-purple-200 px-2 py-1 rounded text-xs font-bold transition"
+                                title="Ver paradas intermedias">
+                                <i class="fa-solid fa-route"></i>
+                            </button>
+                            {% else %}
+                            <span class="text-slate-300 text-xs">—</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="p-3 text-center">
+                            <span class="bg-slate-200 px-2 py-1 rounded font-bold text-slate-700">{{ reg.cantidad_pasajeros }}</span>
+                        </td>
+                        <td class="p-3 text-center">
+                            <button type="button" onclick="verConductor('{{ reg.conductor.nombre }}', '{{ reg.conductor.rut }}', '{{ reg.conductor.telefono|default:'No registrado' }}', '{% if reg.conductor.empresa_externa %}{{ reg.conductor.nombre_empresa_externa }}{% else %}Interno{% endif %}')" class="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full border border-indigo-200 hover:bg-indigo-100 transition">
+                                Ver Datos
+                            </button>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="4" class="p-4 text-center text-slate-400">Sin movimientos hoy.</td>
-                    </tr>
+                    <tr><td colspan="7" class="p-8 text-center text-slate-400">Sin movimientos.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
+        <div class="flex flex-col sm:flex-row justify-between items-center mt-4 pt-4 border-t gap-4">
+            <span class="text-xs text-slate-500 font-bold">Mostrando página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            <div class="flex gap-1 items-center">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&page_size={{ page_size }}" class="px-3 py-1 border rounded hover:bg-slate-50 text-sm text-slate-600 transition"><i class="fa-solid fa-chevron-left"></i></a>
+                {% endif %}
+                {% for i in custom_range %}
+                    {% if i == '...' %}
+                        <span class="px-2 text-slate-400">...</span>
+                    {% else %}
+                        {% if i == page_obj.number %}
+                            <span class="px-3 py-1 border border-blue-500 bg-blue-50 text-blue-700 font-bold rounded text-sm">{{ i }}</span>
+                        {% else %}
+                            <a href="?page={{ i }}&page_size={{ page_size }}" class="px-3 py-1 border rounded hover:bg-slate-50 text-slate-600 text-sm transition">{{ i }}</a>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&page_size={{ page_size }}" class="px-3 py-1 border rounded hover:bg-slate-50 text-sm text-slate-600 transition"><i class="fa-solid fa-chevron-right"></i></a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalConductor" class="hidden fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-xl shadow-xl max-w-sm w-full border-t-4 border-blue-600">
+        <h3 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Datos del Conductor</h3>
+        <ul class="space-y-3 mb-6 text-sm">
+            <li><span class="font-bold text-slate-500 block">Nombre:</span> <span id="mNombre" class="font-bold text-lg text-slate-800"></span></li>
+            <li><span class="font-bold text-slate-500 block">RUT:</span> <span id="mRut" class="text-slate-700"></span></li>
+            <li><span class="font-bold text-slate-500 block">Teléfono:</span> <span id="mFono" class="text-slate-700"></span></li>
+            <li><span class="font-bold text-slate-500 block">Empresa:</span> <span id="mEmpresa" class="text-slate-700 font-bold"></span></li>
+        </ul>
+        <button type="button" onclick="document.getElementById('modalConductor').classList.add('hidden')" class="w-full bg-slate-200 text-slate-800 font-bold py-2 rounded-lg hover:bg-slate-300">
+            Cerrar
+        </button>
+    </div>
+</div>
+<div id="modalRuta" class="hidden fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-xl shadow-xl max-w-sm w-full border-t-4 border-purple-600">
+        <h3 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">
+            <i class="fa-solid fa-route text-purple-600 mr-2"></i>Trayecto Realizado
+        </h3>
+        <div id="mRutaDetalle" class="flex flex-col gap-2 mb-6 text-sm font-bold text-slate-700"></div>
+        <button type="button" onclick="document.getElementById('modalRuta').classList.add('hidden')"
+            class="w-full bg-slate-200 text-slate-800 font-bold py-2 rounded-lg hover:bg-slate-300 transition">
+            Cerrar
+        </button>
     </div>
 </div>
 
 <script>
-    // Reloj en tiempo real
+    // Reloj
     setInterval(() => {
         const now = new Date();
         document.getElementById('reloj').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     }, 1000);
+    function verRuta(origen, paradas, destino, tipo) {
+        let inicio = tipo === 'ENTRADA' ? destino : origen;
+        let fin    = tipo === 'ENTRADA' ? origen  : destino;
+        let lista  = paradas.split(' ➔ ');
+        
+        let html = `<div class="flex items-center gap-2 text-blue-600"><i class="fa-solid fa-circle-play"></i> ${inicio} <span class="text-slate-400 font-normal">(Origen)</span></div>`;
+        lista.forEach(p => {
+            if(p.trim()) html += `<div class="flex items-center gap-2 ml-4 text-purple-600 border-l-2 border-purple-200 pl-4 py-1"><i class="fa-solid fa-location-dot"></i> ${p}</div>`;
+        });
+        html += `<div class="flex items-center gap-2 text-green-600"><i class="fa-solid fa-flag-checkered"></i> ${fin} <span class="text-slate-400 font-normal">(Destino)</span></div>`;
+        
+        document.getElementById('mRutaDetalle').innerHTML = html;
+        document.getElementById('modalRuta').classList.remove('hidden');
+    }
+
+    // Modal Conductor
+    function verConductor(nombre, rut, fono, empresa) {
+        document.getElementById('mNombre').innerText = nombre;
+        document.getElementById('mRut').innerText = rut;
+        document.getElementById('mFono').innerText = fono;
+        document.getElementById('mEmpresa').innerText = empresa;
+        document.getElementById('modalConductor').classList.remove('hidden');
+    }
+
+    // Lógica de Paradas Intermedias
+    const checkParadas = document.getElementById('checkParadas');
+    const contParadas = document.getElementById('contenedorParadas');
+    const listaParadas = document.getElementById('listaParadas');
+    const btnAgregar = document.getElementById('btnAgregarParada');
+
+    if(checkParadas) {
+        checkParadas.addEventListener('change', (e) => {
+            if(e.target.checked) {
+                contParadas.classList.remove('hidden');
+                if(listaParadas.children.length === 0) agregarInputParada();
+            } else {
+                contParadas.classList.add('hidden');
+            }
+        });
+    }
+
+    if(btnAgregar) {
+        btnAgregar.addEventListener('click', agregarInputParada);
+    }
+
+    function agregarInputParada() {
+        const div = document.createElement('div');
+        div.className = "flex gap-2 w-full md:w-1/2";
+        div.innerHTML = `
+            <input type="text" placeholder="Ej: Casino, Planta 2..." class="parada-input w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required>
+            <button type="button" class="bg-red-100 text-red-600 px-4 rounded-lg hover:bg-red-200 font-bold transition" onclick="this.parentElement.remove()"><i class="fa-solid fa-trash"></i></button>
+        `;
+        listaParadas.appendChild(div);
+    }
+
+    // FUNCIÓN ONSUBMIT PARA ASEGURAR EL GUARDADO
+    function prepararParadas() {
+        const hidden = document.getElementById('paradasHidden');
+        if(checkParadas && checkParadas.checked) {
+            const inputs = document.querySelectorAll('.parada-input');
+            const valores = Array.from(inputs).map(inp => inp.value).filter(val => val.trim() !== '');
+            hidden.value = valores.join(' ➔ ');
+        } else {
+            hidden.value = '';
+        }
+    }
 </script>
 {% endblock %}

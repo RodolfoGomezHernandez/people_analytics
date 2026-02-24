@@ -1,32 +1,58 @@
 {% extends 'core/base.html' %}
 {% block content %}
+<div class="mb-6">
+    <a href="{% url 'dashboard_transporte' %}" class="bg-slate-200 text-slate-700 hover:bg-slate-300 px-4 py-2 rounded-lg font-bold text-sm inline-flex items-center gap-2 transition shadow-sm">
+        <i class="fa-solid fa-arrow-left"></i> Volver al Dashboard
+    </a>
+</div>
 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
     <div class="bg-white p-6 rounded-xl shadow-sm h-fit">
         <h2 class="text-xl font-bold mb-4">{{ titulo }}</h2>
         <form method="post">
             {% csrf_token %}
-            {{ form.as_p }}
+            <div class="space-y-4">
+                {% for field in form %}
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<p class="text-red-500 text-xs">{{ field.errors.0 }}</p>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
             
             <div class="flex gap-3 mt-6">
                 <a href="{% url 'dashboard_transporte' %}" class="w-1/3 bg-slate-200 text-slate-700 py-2 rounded font-bold text-center hover:bg-slate-300 transition">
                     Cancelar
                 </a>
-                <button type="submit" class="w-2/3 bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 transition">
+                <button type="submit" class="w-2/3 bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-600/30">
                     Guardar Vehículo
                 </button>
             </div>
         </form>
     </div>
+    
     <div class="md:col-span-2 bg-white p-6 rounded-xl shadow-sm">
-        <h3 class="font-bold mb-4">Vehículos Existentes</h3>
+        <h3 class="font-bold mb-4">Vehículos Activos</h3>
         <table class="w-full text-sm text-left">
-            <thead class="bg-slate-50"><tr><th class="p-2">Patente</th><th class="p-2">Tipo</th><th class="p-2">Capacidad</th></tr></thead>
+            <thead class="bg-slate-50 text-slate-500">
+                <tr>
+                    <th class="p-3">Patente</th>
+                    <th class="p-3">Tipo</th>
+                    <th class="p-3">Capacidad</th>
+                    <th class="p-3 text-center">Acción</th>
+                </tr>
+            </thead>
             <tbody>
                 {% for v in lista_vehiculos %}
-                <tr class="border-t">
-                    <td class="p-2 font-bold">{{ v.patente }}</td>
-                    <td class="p-2">{{ v.tipo }}</td>
-                    <td class="p-2">{{ v.capacidad }}</td>
+                <tr class="border-t hover:bg-slate-50">
+                    <td class="p-3 font-bold text-slate-800">{{ v.patente }}</td>
+                    <td class="p-3 text-slate-600">{{ v.get_tipo_display }}</td>
+                    <td class="p-3 text-slate-600">{{ v.capacidad }} Pax</td>
+                    <td class="p-3 text-center">
+                        <a href="{% url 'deshabilitar_vehiculo' v.id %}" onclick="return confirm('¿Deshabilitar este vehículo?')" class="text-red-500 hover:text-red-700 font-bold bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg border border-red-200 transition">
+                            Deshabilitar
+                        </a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

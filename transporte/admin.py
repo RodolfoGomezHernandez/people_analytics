@@ -4,7 +4,7 @@ from .models import Vehiculo, Conductor, Ruta, RegistroSalida
 @admin.register(Vehiculo)
 class VehiculoAdmin(admin.ModelAdmin):
     # Agregamos 'tarifa_base' para que la veas rápido
-    list_display = ('patente', 'tipo', 'modelo', 'capacidad', 'tarifa_base', 'activo')
+    list_display = ('patente', 'tipo', 'capacidad', 'tarifa_base', 'activo')
     list_filter = ('tipo', 'activo')
 
 @admin.register(Conductor)
