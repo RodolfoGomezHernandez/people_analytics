@@ -1,5 +1,6 @@
 from django.db import models
 from datetime import date
+from django.contrib.auth.models import User
 
 class Colaborador(models.Model):
 
@@ -75,3 +76,65 @@ class Colaborador(models.Model):
     class Meta:
         verbose_name        = "Colaborador"
         verbose_name_plural = "Dotación Completa"
+
+
+class HistorialEstado(models.Model):
+
+    ESTADO_CHOICES = [
+        ('VIGENTE',     'Vigente'),
+        ('FINIQUITADO', 'Finiquitado'),
+        ('BLOQUEADO',   'Bloqueado'),
+    ]
+
+    colaborador     = models.ForeignKey(
+        Colaborador,
+        on_delete    = models.CASCADE,
+        related_name = 'historial_estados'
+    )
+
+    # Transición
+    estado_anterior = models.CharField(max_length=20, choices=ESTADO_CHOICES)
+    estado_nuevo    = models.CharField(max_length=20, choices=ESTADO_CHOICES)
+    motivo          = models.TextField(help_text="Obligatorio al bloquear")
+
+    # Auditoría
+    cambiado_por    = models.ForeignKey(
+        User,
+        on_delete    = models.SET_NULL,
+        null         = True,
+        related_name = 'cambios_estado_realizados'
+    )
+    fecha           = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.colaborador.rut} | {self.estado_anterior} → {self.estado_nuevo} | {self.fecha.strftime('%d/%m/%Y')}"
+
+    class Meta:
+        ordering            = ['-fecha']
+        verbose_name        = "Historial de Estado"
+        verbose_name_plural = "Historial de Estados"
+
+
+class PersonaBloqueada(models.Model):
+    """
+    Lista negra independiente de dotación.
+    Personas que no pueden ingresar aunque no estén en GREX.
+    """
+    rut             = models.CharField(max_length=20, unique=True)
+    nombre_completo = models.CharField(max_length=255)
+    motivo          = models.TextField()
+    foto            = models.ImageField(upload_to='bloqueados/', null=True, blank=True)
+    fecha_bloqueo   = models.DateField(auto_now_add=True)
+    bloqueado_por   = models.ForeignKey(
+        User, on_delete=models.SET_NULL,
+        null=True, related_name='personas_bloqueadas_registradas'
+    )
+    activo          = models.BooleanField(default=True)  # False = desbloqueado
+
+    def __str__(self):
+        return f"{self.nombre_completo} ({self.rut})"
+
+    class Meta:
+        ordering            = ['-fecha_bloqueo']
+        verbose_name        = "Persona Bloqueada"
+        verbose_name_plural = "Lista de Bloqueados"

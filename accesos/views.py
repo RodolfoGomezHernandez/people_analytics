@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.utils import timezone
@@ -6,8 +6,9 @@ from django.views.decorators.http import require_POST
 from dotacion.models import Colaborador
 from .models import RegistroVisita
 
+
 def _formatear_rut(rut_raw):
-    """Formatea RUT chileno: 12.345.678-9. Retorna None si es inválido."""
+    """Formatea RUT chileno: 12.345.678-9."""
     if not rut_raw:
         return rut_raw
     rut = str(rut_raw).upper().replace('.', '').replace('-', '').strip()
@@ -18,13 +19,14 @@ def _formatear_rut(rut_raw):
         return f"{int(cuerpo):,}".replace(',', '.') + '-' + dv
     except ValueError:
         return rut_raw
+
+
 @login_required
 def control(request):
     es_guardia = request.user.groups.filter(name='Guardias').exists()
     es_admin   = request.user.is_superuser or request.user.is_staff
 
     if not es_guardia and not es_admin:
-        from django.shortcuts import redirect
         return redirect('/')
 
     if request.method == 'POST':
@@ -37,8 +39,8 @@ def control(request):
         lugar          = request.POST.get('lugar', '').strip().upper()
         numero_tarjeta = request.POST.get('numero_tarjeta', '').strip()
         patente        = request.POST.get('patente', '').strip().upper()
-        
-    RegistroVisita.objects.create(
+
+        RegistroVisita.objects.create(
             rut             = rut,
             nombre          = nombre,
             empresa         = empresa,
@@ -51,13 +53,11 @@ def control(request):
             registrado_por  = request.user,
         )
 
-    # Personas adentro ahora
     adentro = RegistroVisita.objects.filter(
         fecha       = timezone.localdate(),
         hora_salida = None,
     ).order_by('-hora_entrada')
 
-    # Historial del día completo
     historial = RegistroVisita.objects.filter(
         fecha = timezone.localdate(),
     ).exclude(hora_salida=None).order_by('-hora_entrada')
@@ -71,24 +71,42 @@ def control(request):
 
 @login_required
 def api_buscar_rut(request):
-    """Consulta dotación por RUT y devuelve estado + nombre."""
     rut = request.GET.get('rut', '').strip()
-
     if not rut:
         return JsonResponse({'encontrado': False})
 
+    from dotacion.models import PersonaBloqueada
+
+    # 1. Verificar lista negra independiente primero
+    try:
+        bloqueado = PersonaBloqueada.objects.get(rut=rut, activo=True)
+        return JsonResponse({
+            'encontrado': True,
+            'nombre'    : bloqueado.nombre_completo,
+            'estado'    : 'BLOQUEADO',
+            'cargo'     : '',
+            'empresa'   : '',
+            'fuente'    : 'lista_negra',
+        })
+    except PersonaBloqueada.DoesNotExist:
+        pass
+
+    # 2. Verificar dotación (GREX)
     try:
         colaborador = Colaborador.objects.get(rut=rut)
         return JsonResponse({
-            'encontrado'  : True,
-            'nombre'      : colaborador.nombre_completo,
-            'estado'      : colaborador.estado,
-            'cargo'       : colaborador.cargo or '',
-            'empresa'     : colaborador.centro_costo or '',
+            'encontrado': True,
+            'nombre'    : colaborador.nombre_completo,
+            'estado'    : colaborador.estado,
+            'cargo'     : colaborador.cargo or '',
+            'empresa'   : colaborador.centro_costo or '',
+            'fuente'    : 'dotacion',
         })
     except Colaborador.DoesNotExist:
-        return JsonResponse({'encontrado': False, 'estado': 'EXTERNO'})
+        pass
 
+    # 3. No encontrado en ninguna fuente
+    return JsonResponse({'encontrado': False, 'estado': 'EXTERNO'})
 
 @login_required
 @require_POST
@@ -103,7 +121,7 @@ def api_registrar_salida(request, pk):
     registro.save()
 
     return JsonResponse({
-        'ok'         : True,
+        'ok'        : True,
         'hora_salida': registro.hora_salida.strftime('%H:%M'),
-        'duracion'   : registro.duracion,
+        'duracion'  : registro.duracion,
     })

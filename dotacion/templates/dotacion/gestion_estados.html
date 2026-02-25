@@ -1,0 +1,295 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Gestión de Estados | Aurora HR{% endblock %}
+{% block header_title %}Gestión de Estados{% endblock %}
+
+{% block content %}
+
+<!-- ── Buscador ──────────────────────────────────────── -->
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-magnifying-glass text-indigo-500"></i>
+        Buscar Colaborador
+    </h3>
+    <div class="relative max-w-xl">
+        <input type="text" id="inputBuscar"
+            placeholder="Buscar por RUT o nombre..."
+            class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition pr-10">
+        <span id="spinnerBuscar" class="hidden absolute right-3 top-3.5 text-slate-400">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+        </span>
+    </div>
+    <div id="resultadosBusqueda" class="hidden mt-3 border border-slate-200 rounded-xl overflow-hidden max-w-xl shadow-sm">
+    </div>
+</div>
+
+<!-- ── Lista de bloqueados ───────────────────────────── -->
+<div class="bg-white rounded-xl shadow-sm border border-slate-200">
+    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+        <h3 class="font-bold text-slate-700 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 bg-red-500 rounded-full inline-block"></span>
+            Personas Bloqueadas
+            <span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                {{ bloqueados.count }}
+            </span>
+        </h3>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm" id="tablaBloqueados">
+            <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+                <tr>
+                    <th class="p-3 text-left">Nombre</th>
+                    <th class="p-3 text-left">RUT</th>
+                    <th class="p-3 text-left">Cargo</th>
+                    <th class="p-3 text-left">Motivo Bloqueo</th>
+                    <th class="p-3 text-left">Bloqueado por</th>
+                    <th class="p-3 text-left">Fecha</th>
+                    <th class="p-3 text-center">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in bloqueados %}
+                {% with ultimo=c.historial_estados.first %}
+                <tr class="border-t hover:bg-slate-50 transition" id="fila-{{ c.rut|slugify }}">
+                    <td class="p-3 font-bold text-red-700">🔴 {{ c.nombre_completo }}</td>
+                    <td class="p-3 text-slate-500">{{ c.rut }}</td>
+                    <td class="p-3 text-slate-500">{{ c.cargo|default:"—" }}</td>
+                    <td class="p-3 max-w-xs">
+                        <span class="text-slate-700">{{ c.motivo_bloqueo|default:"Sin motivo registrado" }}</span>
+                    </td>
+                    <td class="p-3 text-slate-500">
+                        {{ ultimo.cambiado_por.get_full_name|default:ultimo.cambiado_por.username|default:"—" }}
+                    </td>
+                    <td class="p-3 text-slate-500 whitespace-nowrap">
+                        {{ ultimo.fecha|date:"d/m/Y H:i"|default:"—" }}
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="abrirModalCambio('{{ c.rut }}', '{{ c.nombre_completo }}', 'BLOQUEADO')"
+                            class="bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 px-3 py-1 rounded-lg text-xs font-bold transition">
+                            <i class="fa-solid fa-lock-open"></i> Desbloquear
+                        </button>
+                    </td>
+                </tr>
+                {% endwith %}
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="p-8 text-center text-slate-400">No hay personas bloqueadas.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── Modal cambio de estado ────────────────────────── -->
+<div id="modalCambio" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+        <div id="modalHeader" class="px-6 py-4 border-b">
+            <h3 class="font-bold text-lg" id="modalTitulo"></h3>
+            <p class="text-sm text-slate-500 mt-1" id="modalSubtitulo"></p>
+        </div>
+        <div class="p-6 space-y-4">
+            <input type="hidden" id="modalRut">
+            <input type="hidden" id="modalEstadoActual">
+
+            <div id="selectorEstado" class="hidden">
+                <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Nuevo Estado</label>
+                <select id="selectEstado"
+                    class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <option value="BLOQUEADO">🔴 Bloqueado</option>
+                    <option value="FINIQUITADO">🟡 Finiquitado</option>
+                    <option value="VIGENTE">🟢 Vigente</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="text-xs font-bold text-slate-500 uppercase block mb-1">
+                    Motivo <span class="text-red-500">*</span>
+                </label>
+                <textarea id="inputMotivo" rows="3"
+                    placeholder="Describe el motivo del cambio de estado..."
+                    class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition resize-none"></textarea>
+                <p id="errorMotivo" class="hidden text-red-500 text-xs mt-1">El motivo es obligatorio.</p>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="cerrarModal()"
+                    class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-xl transition">
+                    Cancelar
+                </button>
+                <button id="btnConfirmar" onclick="confirmarCambio()"
+                    class="flex-1 font-bold py-2 rounded-xl transition text-white">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Toast ─────────────────────────────────────────── -->
+<div id="toast" class="hidden fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-white font-bold text-sm flex items-center gap-2"></div>
+
+<script>
+const CSRF       = '{{ csrf_token }}';
+const API_BUSCAR = "{% url 'dotacion_api_buscar' %}";
+
+// ── Búsqueda en vivo ─────────────────────────────────
+let timerBusqueda = null;
+document.getElementById('inputBuscar').addEventListener('input', function () {
+    clearTimeout(timerBusqueda);
+    const q = this.value.trim();
+    if (q.length < 3) {
+        document.getElementById('resultadosBusqueda').classList.add('hidden');
+        return;
+    }
+    document.getElementById('spinnerBuscar').classList.remove('hidden');
+    timerBusqueda = setTimeout(() => buscar(q), 400);
+});
+
+async function buscar(q) {
+    try {
+        const res  = await fetch(`${API_BUSCAR}?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        document.getElementById('spinnerBuscar').classList.add('hidden');
+
+        const contenedor = document.getElementById('resultadosBusqueda');
+
+        if (!data.resultados.length) {
+            contenedor.innerHTML = '<p class="p-4 text-slate-400 text-sm text-center">Sin resultados.</p>';
+            contenedor.classList.remove('hidden');
+            return;
+        }
+
+        const BADGE = {
+            'VIGENTE'    : '<span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">Vigente</span>',
+            'FINIQUITADO': '<span class="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-0.5 rounded-full">Finiquitado</span>',
+            'BLOQUEADO'  : '<span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">Bloqueado</span>',
+        };
+
+        contenedor.innerHTML = data.resultados.map(c => `
+            <div class="flex items-center justify-between px-4 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-0">
+                <div>
+                    <p class="font-bold text-slate-800 text-sm">${c.nombre_completo}</p>
+                    <p class="text-xs text-slate-400">${c.rut} · ${c.cargo || '—'} · ${c.centro_costo || '—'}</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    ${BADGE[c.estado] || ''}
+                    <button onclick="abrirModalCambio('${c.rut}', '${c.nombre_completo}', '${c.estado}')"
+                        class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 px-3 py-1 rounded-lg text-xs font-bold transition">
+                        <i class="fa-solid fa-pen"></i> Cambiar
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        contenedor.classList.remove('hidden');
+    } catch(e) {
+        document.getElementById('spinnerBuscar').classList.add('hidden');
+    }
+}
+
+// ── Modal ─────────────────────────────────────────────
+function abrirModalCambio(rut, nombre, estadoActual) {
+    document.getElementById('modalRut').value          = rut;
+    document.getElementById('modalEstadoActual').value = estadoActual;
+    document.getElementById('inputMotivo').value       = '';
+    document.getElementById('errorMotivo').classList.add('hidden');
+    document.getElementById('resultadosBusqueda').classList.add('hidden');
+
+    const header = document.getElementById('modalHeader');
+    const titulo = document.getElementById('modalTitulo');
+    const sub    = document.getElementById('modalSubtitulo');
+    const btn    = document.getElementById('btnConfirmar');
+    const sel    = document.getElementById('selectorEstado');
+
+    titulo.innerText = nombre;
+
+    if (estadoActual === 'BLOQUEADO') {
+        header.className = 'px-6 py-4 border-b border-green-100 bg-green-50';
+        titulo.className = 'font-bold text-lg text-green-700';
+        sub.innerText    = 'Confirma el desbloqueo de esta persona.';
+        btn.className    = 'flex-1 font-bold py-2 rounded-xl transition text-white bg-green-600 hover:bg-green-700';
+        btn.innerText    = 'Confirmar Desbloqueo';
+        sel.classList.add('hidden');
+        document.getElementById('selectEstado').value = 'VIGENTE';
+    } else {
+        header.className = 'px-6 py-4 border-b border-red-100 bg-red-50';
+        titulo.className = 'font-bold text-lg text-red-700';
+        sub.innerText    = `Estado actual: ${estadoActual}. Selecciona el nuevo estado.`;
+        btn.className    = 'flex-1 font-bold py-2 rounded-xl transition text-white bg-red-600 hover:bg-red-700';
+        btn.innerText    = 'Confirmar Cambio';
+        sel.classList.remove('hidden');
+    }
+
+    document.getElementById('modalCambio').classList.remove('hidden');
+}
+
+function cerrarModal() {
+    document.getElementById('modalCambio').classList.add('hidden');
+}
+
+async function confirmarCambio() {
+    const rut       = document.getElementById('modalRut').value;
+    const estadoNuevo = document.getElementById('selectEstado').value;
+    const motivo    = document.getElementById('inputMotivo').value.trim();
+
+    if (!motivo) {
+        document.getElementById('errorMotivo').classList.remove('hidden');
+        return;
+    }
+
+    const btn = document.getElementById('btnConfirmar');
+    btn.disabled  = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+    const fd = new FormData();
+    fd.append('estado_nuevo', estadoNuevo);
+    fd.append('motivo', motivo);
+    fd.append('csrfmiddlewaretoken', CSRF);
+
+    const res  = await fetch(`/dotacion/estados/cambiar/${encodeURIComponent(rut)}/`, {
+        method: 'POST', body: fd
+    });
+    const data = await res.json();
+
+    btn.disabled  = false;
+    btn.innerHTML = 'Confirmar';
+
+    if (data.ok) {
+        cerrarModal();
+        mostrarToast(`✅ ${data.nombre} → ${data.estado_nuevo}`, 'bg-green-600');
+        if (estadoNuevo === 'BLOQUEADO') {
+            setTimeout(() => location.reload(), 1200);
+        } else {
+            const slug = rut.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+            const fila = document.getElementById(`fila-${slug}`);
+            if (fila) {
+                fila.style.transition = 'opacity 0.3s';
+                fila.style.opacity    = '0';
+                setTimeout(() => fila.remove(), 300);
+            }
+        }
+    } else {
+        mostrarToast(`❌ ${data.error}`, 'bg-red-600');
+    }
+}
+
+// ── Toast ─────────────────────────────────────────────
+function mostrarToast(msg, colorClass) {
+    const toast = document.getElementById('toast');
+    toast.className = `fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-white font-bold text-sm flex items-center gap-2 ${colorClass}`;
+    toast.innerHTML = msg;
+    toast.classList.remove('hidden');
+    setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+// Cerrar resultados al hacer click fuera
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#inputBuscar') && !e.target.closest('#resultadosBusqueda')) {
+        document.getElementById('resultadosBusqueda').classList.add('hidden');
+    }
+});
+</script>
+
+{% endblock %}
