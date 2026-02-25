@@ -116,6 +116,11 @@
                         <td class="p-3 text-xs">{{ reg.vehiculo.get_tipo_display }}</td>
                         
                         <td class="p-3 max-w-[150px] truncate"
+                            title="{% if reg.tipo_movimiento == 'ENTRADA' %}{{ reg.ruta.destino }}{% else %}{{ reg.ruta.origen }}{% endif %}">
+                            {% if reg.tipo_movimiento == 'ENTRADA' %}{{ reg.ruta.destino }}{% else %}{{ reg.ruta.origen }}{% endif %}
+                        </td>
+
+                        <td class="p-3 max-w-[150px] truncate"
                             title="{% if reg.tipo_movimiento == 'ENTRADA' %}{{ reg.ruta.origen }}{% else %}{{ reg.ruta.destino }}{% endif %}">
                             {% if reg.tipo_movimiento == 'ENTRADA' %}{{ reg.ruta.origen }}{% else %}{{ reg.ruta.destino }}{% endif %}
                         </td>
@@ -152,7 +157,7 @@
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="10" class="p-8 text-center text-slate-400">Sin registros disponibles.</td></tr>
+                    <tr><td colspan="11" class="p-8 text-center text-slate-400">Sin registros disponibles.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
