@@ -6,6 +6,7 @@ from django.db.models import Count, Q
 from django.db.models.functions import TruncWeek
 from datetime import date, timedelta
 import json
+from django.db import models as db_models
 
 from .forms import CargaFichasForm
 from .models import Colaborador
@@ -190,3 +191,123 @@ def api_kpis(request):
         'permanencia'     : {'labels': list(rangos_perm.keys()), 'values': list(rangos_perm.values())},
         'tipo_contrato'   : {'labels': [d['tipo_contrato'] for d in planta_data],     'values': [d['total'] for d in planta_data]},
     })
+
+@login_required
+def gestion_estados(request):
+    """Vista principal: buscador + lista de bloqueados."""
+    if not request.user.is_staff and not request.user.is_superuser:
+        return redirect('dotacion_index')
+
+    bloqueados = (
+        Colaborador.objects
+        .filter(estado='BLOQUEADO')
+        .prefetch_related('historial_estados')
+        .order_by('nombre_completo')
+    )
+
+    return render(request, 'dotacion/gestion_estados.html', {
+        'bloqueados': bloqueados,
+    })
+
+
+@login_required
+def cambiar_estado(request, rut):
+    """Cambia el estado de un colaborador y guarda el historial."""
+    if not request.user.is_staff and not request.user.is_superuser:
+        return JsonResponse({'ok': False, 'error': 'Sin permisos'}, status=403)
+
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
+
+    colaborador = get_object_or_404(Colaborador, rut=rut)
+    estado_nuevo = request.POST.get('estado_nuevo', '').strip()
+    motivo       = request.POST.get('motivo', '').strip()
+
+    estados_validos = ['VIGENTE', 'FINIQUITADO', 'BLOQUEADO']
+    if estado_nuevo not in estados_validos:
+        return JsonResponse({'ok': False, 'error': 'Estado inválido'})
+
+    if not motivo:
+        return JsonResponse({'ok': False, 'error': 'El motivo es obligatorio'})
+
+    if colaborador.estado == estado_nuevo:
+        return JsonResponse({'ok': False, 'error': f'Ya está en estado {estado_nuevo}'})
+
+    from .models import HistorialEstado
+    estado_anterior = colaborador.estado
+
+    from .models import HistorialEstado
+    from .signals import (
+        colaborador_bloqueado,
+        colaborador_desbloqueado,
+        colaborador_finiquitado,
+    )
+
+    estado_anterior = colaborador.estado
+
+    # Guardar historial
+    HistorialEstado.objects.create(
+        colaborador     = colaborador,
+        estado_anterior = estado_anterior,
+        estado_nuevo    = estado_nuevo,
+        motivo          = motivo,
+        cambiado_por    = request.user,
+    )
+
+    # Actualizar estado
+    colaborador.estado = estado_nuevo
+    if estado_nuevo == 'BLOQUEADO':
+        colaborador.motivo_bloqueo = motivo
+    elif estado_nuevo == 'VIGENTE':
+        colaborador.motivo_bloqueo = None
+    colaborador.save()
+
+    # ── Disparar señal correspondiente ────────────────
+    contexto = {
+        'colaborador' : colaborador,
+        'motivo'      : motivo,
+        'cambiado_por': request.user,
+    }
+    if estado_nuevo == 'BLOQUEADO':
+        colaborador_bloqueado.send(sender=Colaborador, **contexto)
+    elif estado_nuevo == 'VIGENTE' and estado_anterior == 'BLOQUEADO':
+        colaborador_desbloqueado.send(sender=Colaborador, **contexto)
+    elif estado_nuevo == 'FINIQUITADO':
+        colaborador_finiquitado.send(sender=Colaborador, **contexto)
+
+    return JsonResponse({
+        'ok'             : True,
+        'estado_nuevo'   : estado_nuevo,
+        'nombre'         : colaborador.nombre_completo,
+        'estado_anterior': estado_anterior,
+    })
+
+    return JsonResponse({
+        'ok'            : True,
+        'estado_nuevo'  : estado_nuevo,
+        'nombre'        : colaborador.nombre_completo,
+        'estado_anterior': estado_anterior,
+    })
+
+
+@login_required
+def api_buscar(request):
+    """Busca colaboradores por RUT o nombre para la gestión de estados."""
+    if not request.user.is_staff and not request.user.is_superuser:
+        return JsonResponse({'error': '403'}, status=403)
+
+    q = request.GET.get('q', '').strip()
+    if len(q) < 3:
+        return JsonResponse({'resultados': []})
+
+    colaboradores = (
+        Colaborador.objects
+        .filter(
+            db_models.Q(rut__icontains=q) |
+            db_models.Q(nombre_completo__icontains=q)
+        )
+        .values('rut', 'nombre_completo', 'cargo', 'centro_costo', 'estado', 'motivo_bloqueo')
+        [:10]
+    )
+
+    return JsonResponse({'resultados': list(colaboradores)})
