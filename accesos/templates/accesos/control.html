@@ -5,7 +5,7 @@
 
 {% block content %}
 
-<!-- ── Alerta bloqueado (oculta por defecto) ─────────── -->
+<!-- ── Alerta bloqueado ──────────────────────────────── -->
 <div id="alertaBloqueado" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70">
     <div class="bg-white rounded-2xl shadow-2xl border-t-8 border-red-600 max-w-md w-full mx-4 p-8 text-center">
         <div class="text-6xl mb-4">🚫</div>
@@ -19,7 +19,7 @@
     </div>
 </div>
 
-<!-- ── Alerta finiquitado (oculta por defecto) ───────── -->
+<!-- ── Alerta finiquitado ────────────────────────────── -->
 <div id="alertaFiniquitado" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70">
     <div class="bg-white rounded-2xl shadow-2xl border-t-8 border-yellow-500 max-w-md w-full mx-4 p-8 text-center">
         <div class="text-6xl mb-4">⚠️</div>
@@ -47,7 +47,6 @@
             <form method="post" class="p-6 space-y-4" id="formIngreso">
                 {% csrf_token %}
 
-                <!-- RUT con búsqueda en vivo -->
                 <div>
                     <label class="text-xs font-bold text-slate-500 uppercase block mb-1">RUT *</label>
                     <div class="relative">
@@ -58,11 +57,9 @@
                             <i class="fa-solid fa-spinner fa-spin"></i>
                         </span>
                     </div>
-                    <!-- Badge de estado -->
                     <div id="estadoBadge" class="hidden mt-2 flex items-center gap-2 text-sm font-bold px-3 py-2 rounded-lg"></div>
                 </div>
 
-                <!-- Nombre (se autocompleta si está en dotación) -->
                 <div>
                     <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Nombre Completo *</label>
                     <input type="text" name="nombre" id="inputNombre"
@@ -70,17 +67,14 @@
                         required>
                 </div>
 
-                <!-- Input oculto para estado dotación -->
                 <input type="hidden" name="estado_dotacion" id="inputEstadoDotacion" value="EXTERNO">
 
-                <!-- Empresa -->
                 <div>
                     <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Empresa</label>
                     <input type="text" name="empresa" id="inputEmpresa"
                         class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none transition">
                 </div>
 
-                <!-- Patente -->
                 <div>
                     <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Patente Vehículo</label>
                     <input type="text" name="patente" placeholder="Ej: ABCD12"
@@ -89,7 +83,6 @@
 
                 <hr class="border-slate-100">
 
-                <!-- Quién autoriza -->
                 <div>
                     <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Quién Autoriza *</label>
                     <input type="text" name="quien_autoriza"
@@ -97,7 +90,6 @@
                         required>
                 </div>
 
-                <!-- A quién visita -->
                 <div>
                     <label class="text-xs font-bold text-slate-500 uppercase block mb-1">A Quién Visita *</label>
                     <input type="text" name="a_quien_visita"
@@ -105,7 +97,6 @@
                         required>
                 </div>
 
-                <!-- Lugar -->
                 <div>
                     <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Lugar *</label>
                     <input type="text" name="lugar" placeholder="Ej: Sala reuniones, Gerencia..."
@@ -113,7 +104,6 @@
                         required>
                 </div>
 
-                <!-- Nº tarjeta -->
                 <div>
                     <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Nº Tarjeta de Visita</label>
                     <input type="text" name="numero_tarjeta" placeholder="Ej: 042"
@@ -128,7 +118,7 @@
         </div>
     </div>
 
-    <!-- ── Panel derecho: adentro + historial ────────── -->
+    <!-- ── Panel derecho ────────────────────────────── -->
     <div class="xl:col-span-2 space-y-6">
 
         <!-- Personas adentro ahora -->
@@ -137,13 +127,13 @@
                 <h3 class="font-bold text-slate-700 flex items-center gap-2">
                     <span class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse inline-block"></span>
                     Personas dentro ahora
-                    <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                    <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full" id="contadorAdentro">
                         {{ adentro.count }}
                     </span>
                 </h3>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-sm" id="tablaAdentro">
+                <table class="w-full text-sm">
                     <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
                         <tr>
                             <th class="p-3 text-left">Nombre</th>
@@ -156,7 +146,7 @@
                             <th class="p-3 text-center">Salida</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tablaAdentro">
                         {% for r in adentro %}
                         <tr class="border-t hover:bg-slate-50 transition" id="fila-{{ r.pk }}">
                             <td class="p-3 font-bold">
@@ -203,7 +193,7 @@
                 <h3 class="font-bold text-slate-700 flex items-center gap-2">
                     <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
                     Historial de hoy
-                    <span class="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                    <span class="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-full" id="contadorHistorial">
                         {{ historial.count }}
                     </span>
                 </h3>
@@ -220,7 +210,7 @@
                             <th class="p-3 text-center">Duración</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tablaHistorial">
                         {% for r in historial %}
                         <tr class="border-t hover:bg-slate-50 transition text-slate-600">
                             <td class="p-3">{{ r.nombre }}</td>
@@ -248,21 +238,21 @@
 </div>
 
 <script>
-const API_BUSCAR  = "{% url 'accesos_api_buscar' %}";
-const API_SALIDA  = (pk) => `/accesos/api/salida/${pk}/`;
-const CSRF        = '{{ csrf_token }}';
+const API_BUSCAR = "{% url 'accesos_api_buscar' %}";
+const API_SALIDA = (pk) => `/accesos/api/salida/${pk}/`;
+const CSRF       = '{{ csrf_token }}';
 
 let estadoActual  = 'EXTERNO';
 let busquedaTimer = null;
 
-// ── Formato RUT chileno ──────────────────────────────
+// ── Formato RUT ──────────────────────────────────────
 function formatearRut(rut) {
     let limpio = rut.replace(/[^0-9kK]/g, '').toUpperCase();
     if (limpio.length < 2) return limpio;
-    const dv     = limpio.slice(-1);
-    const cuerpo = limpio.slice(0, -1);
-    const formateado = parseInt(cuerpo, 10).toLocaleString('es-CL').replace(/\./g, '.');
-    return `${formateado}-${dv}`;
+    const dv  = limpio.slice(-1);
+    const num = parseInt(limpio.slice(0, -1), 10);
+    if (isNaN(num)) return limpio;
+    return num.toLocaleString('es-CL').replace(/\./g, '.') + '-' + dv;
 }
 
 // ── Validación módulo 11 ─────────────────────────────
@@ -273,35 +263,26 @@ function validarRut(rut) {
     const cuerpo = limpio.slice(0, -1);
     let suma = 0, multiplo = 2;
     for (let i = cuerpo.length - 1; i >= 0; i--) {
-        suma      += parseInt(cuerpo[i]) * multiplo;
-        multiplo   = multiplo < 7 ? multiplo + 1 : 2;
+        suma     += parseInt(cuerpo[i]) * multiplo;
+        multiplo  = multiplo < 7 ? multiplo + 1 : 2;
     }
-    const dvEsperado = 11 - (suma % 11);
-    const dvCalc     = dvEsperado === 11 ? '0' : dvEsperado === 10 ? 'K' : String(dvEsperado);
+    const r      = 11 - (suma % 11);
+    const dvCalc = r === 11 ? '0' : r === 10 ? 'K' : String(r);
     return dv === dvCalc;
 }
 
-// ── Input RUT: formateo en tiempo real ───────────────
+// ── Input RUT ────────────────────────────────────────
 const inputRut = document.getElementById('inputRut');
 inputRut.addEventListener('input', function () {
     clearTimeout(busquedaTimer);
     const raw = this.value.replace(/[^0-9kK]/g, '');
-    if (raw.length > 1) {
-        this.value = formatearRut(raw);
-    }
-    const rut = this.value.trim();
+    if (raw.length > 1) this.value = formatearRut(raw);
 
-    // Limpiar si muy corto
     if (raw.length < 7) { limpiarBadge(); return; }
-
-    // Validar módulo 11
-    if (!validarRut(rut)) {
-        mostrarBadgeError('RUT inválido');
-        return;
-    }
+    if (!validarRut(this.value)) { mostrarBadgeError('RUT inválido'); return; }
 
     document.getElementById('rutSpinner').classList.remove('hidden');
-    busquedaTimer = setTimeout(() => buscarRut(rut), 500);
+    busquedaTimer = setTimeout(() => buscarRut(this.value.trim()), 500);
 });
 
 async function buscarRut(rut) {
@@ -330,7 +311,7 @@ async function buscarRut(rut) {
 
 // ── Badges ───────────────────────────────────────────
 function mostrarBadge(estado, cargo) {
-    const badge = document.getElementById('estadoBadge');
+    const badge  = document.getElementById('estadoBadge');
     const config = {
         'VIGENTE'    : { color: 'bg-green-50 text-green-700 border border-green-200',    icon: '✅', texto: `Vigente — ${cargo}` },
         'FINIQUITADO': { color: 'bg-yellow-50 text-yellow-700 border border-yellow-200', icon: '⚠️', texto: 'Finiquitado' },
@@ -378,7 +359,6 @@ function cerrarAlerta() {
 function cerrarAlertaFin() {
     document.getElementById('alertaFiniquitado').classList.add('hidden');
 }
-
 function bloquearFormulario() {
     const btn = document.getElementById('btnRegistrar');
     btn.disabled = true;
@@ -390,52 +370,79 @@ function habilitarFormulario() {
     btn.classList.remove('opacity-50', 'cursor-not-allowed');
 }
 
-// ── Submit por AJAX (sin recargar página) ────────────
+// ── Función auxiliar para refrescar tablas ───────────
+async function refrescarTablas() {
+    try {
+        const pageRes  = await fetch(window.location.href);
+        const pageHtml = await pageRes.text();
+        const parser   = new DOMParser();
+        const doc      = parser.parseFromString(pageHtml, 'text/html');
+
+        const ids = ['tablaAdentro', 'tablaHistorial'];
+        ids.forEach(id => {
+            const nuevo = doc.getElementById(id);
+            if (nuevo) document.getElementById(id).innerHTML = nuevo.innerHTML;
+        });
+
+        const contadores = ['contadorAdentro', 'contadorHistorial'];
+        contadores.forEach(id => {
+            const nuevo = doc.getElementById(id);
+            if (nuevo) document.getElementById(id).innerText = nuevo.innerText;
+        });
+    } catch(e) {
+        console.error('Error refrescando tablas:', e);
+    }
+}
+
+// ── Submit AJAX ──────────────────────────────────────
 document.getElementById('formIngreso').addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    const btn = document.getElementById('btnRegistrar');
-    btn.disabled = true;
+    const btn     = document.getElementById('btnRegistrar');
+    btn.disabled  = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
 
-    const formData = new FormData(this);
-
-    const res  = await fetch('', { method: 'POST', body: formData });
-    const html = await res.text();
-
-    // Parsea la respuesta y extrae las tablas actualizadas
-    const parser   = new DOMParser();
-    const doc      = parser.parseFromString(html, 'text/html');
-    const nuevaTablaAdentro = doc.getElementById('tablaAdentro');
-    if (nuevaTablaAdentro) {
-        document.getElementById('tablaAdentro').innerHTML = nuevaTablaAdentro.innerHTML;
+    try {
+        await fetch('', { method: 'POST', body: new FormData(this) });
+        await refrescarTablas();
+        this.reset();
+        limpiarBadge();
+    } catch(e) {
+        console.error('Error al registrar:', e);
+    } finally {
+        btn.disabled  = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Registrar Ingreso';
     }
-
-    // Limpia el formulario
-    this.reset();
-    limpiarBadge();
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Registrar Ingreso';
 });
 
-// ── Registrar salida sin recargar ─────────────────────
+// ── Registrar salida ─────────────────────────────────
 async function registrarSalida(pk, btn) {
-    btn.disabled = true;
+    btn.disabled  = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
-    const res  = await fetch(API_SALIDA(pk), {
-        method : 'POST',
-        headers: { 'X-CSRFToken': CSRF }
-    });
-    const data = await res.json();
+    try {
+        const res  = await fetch(API_SALIDA(pk), {
+            method : 'POST',
+            headers: { 'X-CSRFToken': CSRF }
+        });
+        const data = await res.json();
 
-    if (data.ok) {
-        const fila = document.getElementById(`fila-${pk}`);
-        fila.style.transition = 'opacity 0.3s';
-        fila.style.opacity    = '0';
-        setTimeout(() => fila.remove(), 300);
-    } else {
-        btn.disabled = false;
+        if (data.ok) {
+            const fila = document.getElementById(`fila-${pk}`);
+            if (fila) {
+                fila.style.transition = 'opacity 0.3s';
+                fila.style.opacity    = '0';
+                setTimeout(async () => {
+                    fila.remove();
+                    await refrescarTablas();
+                }, 300);
+            }
+        } else {
+            btn.disabled  = false;
+            btn.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Salida';
+        }
+    } catch(e) {
+        btn.disabled  = false;
         btn.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Salida';
     }
 }

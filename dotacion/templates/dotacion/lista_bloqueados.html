@@ -7,9 +7,11 @@
 
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
-    <!-- ── Formulario agregar ─────────────────────── -->
-    <div class="xl:col-span-1">
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden sticky top-6">
+    <!-- ── Panel izquierdo ───────────────────────────── -->
+    <div class="xl:col-span-1 space-y-4">
+
+        <!-- Formulario agregar individual -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="bg-red-700 px-6 py-4">
                 <h2 class="text-white font-bold flex items-center gap-2">
                     <i class="fa-solid fa-user-slash"></i> Agregar Bloqueado
@@ -17,26 +19,28 @@
                 <p class="text-red-200 text-xs mt-1">Esta persona no podrá ingresar a las instalaciones.</p>
             </div>
 
-            <form method="post" enctype="multipart/form-data" class="p-6 space-y-4">
+            <form method="post" enctype="multipart/form-data" class="p-6 space-y-4" id="formBloqueo">
                 {% csrf_token %}
 
                 <div>
                     <label class="text-xs font-bold text-slate-500 uppercase block mb-1">RUT *</label>
-                    <input type="text" name="rut" placeholder="Ej: 12.345.678-9"
+                    <input type="text" name="rut" id="inputRut" placeholder="Ej: 12.345.678-9"
+                        autocomplete="off"
                         class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition"
                         required>
+                    <p id="errorRut" class="hidden text-red-500 text-xs mt-1">RUT inválido.</p>
                 </div>
 
                 <div>
                     <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Nombre Completo *</label>
-                    <input type="text" name="nombre" placeholder="Apellido Apellido Nombre"
+                    <input type="text" name="nombre" id="inputNombre" placeholder="APELLIDO APELLIDO NOMBRE"
                         class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition"
                         required>
                 </div>
 
                 <div>
                     <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Motivo *</label>
-                    <textarea name="motivo" rows="3"
+                    <textarea name="motivo" id="inputMotivo" rows="3"
                         placeholder="Describe el motivo del bloqueo..."
                         class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition resize-none"
                         required></textarea>
@@ -50,32 +54,56 @@
                         class="w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:font-bold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
                 </div>
 
-                <button type="submit"
+                <button type="submit" id="btnAgregar"
                     class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
                     <i class="fa-solid fa-ban"></i> Agregar a Lista Negra
                 </button>
             </form>
         </div>
+
+        <!-- Carga masiva -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-3">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-xs font-bold text-slate-600 uppercase">Carga Masiva</p>
+                <a href="{% url 'dotacion_plantilla_bloqueados' %}"
+                    class="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 transition">
+                    <i class="fa-solid fa-download"></i> Descargar Plantilla
+                </a>
+            </div>
+            <p class="text-xs text-slate-400">Descarga la plantilla, complétala y súbela aquí.</p>
+            <form method="post" enctype="multipart/form-data"
+                action="{% url 'dotacion_carga_masiva_bloqueados' %}">
+                {% csrf_token %}
+                <div class="space-y-2">
+                    <input type="file" name="archivo_masivo" accept=".xlsx" required
+                        class="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+                    <button type="submit"
+                        class="w-full bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-upload"></i> Procesar Carga Masiva
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <!-- ── Lista bloqueados ───────────────────────── -->
+    <!-- ── Lista bloqueados ───────────────────────────── -->
     <div class="xl:col-span-2">
         <div class="bg-white rounded-xl shadow-sm border border-slate-200">
             <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
                 <h3 class="font-bold text-slate-700 flex items-center gap-2">
                     <span class="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse inline-block"></span>
                     Personas Bloqueadas
-                    <span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                    <span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full" id="contadorBloqueados">
                         {{ bloqueados.count }}
                     </span>
                 </h3>
             </div>
 
-            <div class="divide-y divide-slate-100">
+            <div class="divide-y divide-slate-100" id="listaBloqueados">
                 {% for p in bloqueados %}
                 <div class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition" id="persona-{{ p.pk }}">
 
-                    <!-- Foto o iniciales -->
+                    <!-- Avatar -->
                     <div class="flex-shrink-0">
                         {% if p.foto %}
                             <img src="{{ p.foto.url }}" alt="{{ p.nombre_completo }}"
@@ -96,21 +124,21 @@
                         </p>
                     </div>
 
-                    <!-- Meta -->
+                    <!-- Meta + acción -->
                     <div class="text-right flex-shrink-0">
                         <p class="text-xs text-slate-400">{{ p.fecha_bloqueo|date:"d/m/Y" }}</p>
                         <p class="text-xs text-slate-400 mt-0.5">
                             por {{ p.bloqueado_por.get_full_name|default:p.bloqueado_por.username|default:"—" }}
                         </p>
-                        <button onclick="desbloquear({{ p.pk }}, '{{ p.nombre_completo }}')"
+                        <button onclick="abrirDesbloqueo({{ p.pk }}, '{{ p.nombre_completo|escapejs }}')"
                             class="mt-2 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 px-3 py-1 rounded-lg text-xs font-bold transition">
                             <i class="fa-solid fa-lock-open"></i> Desbloquear
                         </button>
                     </div>
                 </div>
                 {% empty %}
-                <div class="p-16 text-center">
-                    <i class="fa-solid fa-shield-check text-4xl text-slate-200 mb-3"></i>
+                <div class="p-16 text-center" id="listaVacia">
+                    <i class="fa-solid fa-shield-check text-4xl text-slate-200 mb-3 block"></i>
                     <p class="text-slate-400 font-medium">Lista vacía.</p>
                     <p class="text-slate-400 text-sm mt-1">Agrega personas usando el formulario.</p>
                 </div>
@@ -120,7 +148,7 @@
     </div>
 </div>
 
-<!-- ── Modal confirmación desbloqueo ─────────────────── -->
+<!-- ── Modal desbloqueo ───────────────────────────────── -->
 <div id="modalDesbloqueo" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60">
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden">
         <div class="bg-green-50 border-b border-green-100 px-6 py-4">
@@ -140,7 +168,7 @@
                     class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-xl transition">
                     Cancelar
                 </button>
-                <button id="btnDesbloquear" onclick="confirmarDesbloqueo()"
+                <button id="btnConfirmarDesbloqueo" onclick="confirmarDesbloqueo()"
                     class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl transition">
                     Confirmar
                 </button>
@@ -156,9 +184,62 @@
 const CSRF = '{{ csrf_token }}';
 let pkActual = null;
 
-function desbloquear(pk, nombre) {
+// ── Validación y formato RUT ──────────────────────────
+function formatearRut(rut) {
+    let limpio = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+    if (limpio.length < 2) return limpio;
+    const dv  = limpio.slice(-1);
+    const num = parseInt(limpio.slice(0, -1), 10);
+    if (isNaN(num)) return limpio;
+    return num.toLocaleString('es-CL').replace(/\./g, '.') + '-' + dv;
+}
+
+function validarRut(rut) {
+    const limpio = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+    if (limpio.length < 2) return false;
+    const dv     = limpio.slice(-1);
+    const cuerpo = limpio.slice(0, -1);
+    let suma = 0, multiplo = 2;
+    for (let i = cuerpo.length - 1; i >= 0; i--) {
+        suma     += parseInt(cuerpo[i]) * multiplo;
+        multiplo  = multiplo < 7 ? multiplo + 1 : 2;
+    }
+    const r      = 11 - (suma % 11);
+    const dvCalc = r === 11 ? '0' : r === 10 ? 'K' : String(r);
+    return dv === dvCalc;
+}
+
+// Formateo RUT en tiempo real
+document.getElementById('inputRut').addEventListener('input', function () {
+    const raw = this.value.replace(/[^0-9kK]/g, '');
+    if (raw.length > 1) this.value = formatearRut(raw);
+    document.getElementById('errorRut').classList.add('hidden');
+});
+
+// Mayúsculas en tiempo real
+['inputNombre', 'inputMotivo'].forEach(id => {
+    document.getElementById(id).addEventListener('input', function () {
+        const pos = this.selectionStart;
+        this.value = this.value.toUpperCase();
+        this.setSelectionRange(pos, pos);
+    });
+});
+
+// Validar RUT antes de enviar
+document.getElementById('formBloqueo').addEventListener('submit', function (e) {
+    const rut = document.getElementById('inputRut').value;
+    if (!validarRut(rut)) {
+        e.preventDefault();
+        document.getElementById('errorRut').classList.remove('hidden');
+        return;
+    }
+    mostrarLoader('Guardando...');
+});
+
+// ── Desbloqueo ────────────────────────────────────────
+function abrirDesbloqueo(pk, nombre) {
     pkActual = pk;
-    document.getElementById('modalNombre').innerText = nombre;
+    document.getElementById('modalNombre').innerText  = nombre;
     document.getElementById('motivoDesbloqueo').value = '';
     document.getElementById('errorDesbloqueo').classList.add('hidden');
     document.getElementById('modalDesbloqueo').classList.remove('hidden');
@@ -176,37 +257,63 @@ async function confirmarDesbloqueo() {
         return;
     }
 
-    const btn = document.getElementById('btnDesbloquear');
+    const btn     = document.getElementById('btnConfirmarDesbloqueo');
     btn.disabled  = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
-    const fd = new FormData();
-    fd.append('motivo', motivo);
-    fd.append('csrfmiddlewaretoken', CSRF);
+    try {
+        const fd = new FormData();
+        fd.append('motivo', motivo);
+        fd.append('csrfmiddlewaretoken', CSRF);
 
-    const res  = await fetch(`/dotacion/bloqueados/desbloquear/${pkActual}/`, {
-        method: 'POST', body: fd
-    });
-    const data = await res.json();
+        const res  = await fetch(`/dotacion/bloqueados/desbloquear/${pkActual}/`, {
+            method: 'POST',
+            body  : fd,
+        });
+        const data = await res.json();
 
-    btn.disabled  = false;
-    btn.innerHTML = 'Confirmar';
+        if (data.ok) {
+            cerrarModalDesbloqueo();
+            mostrarToast(`✅ ${data.nombre} desbloqueado`);
 
-    if (data.ok) {
-        cerrarModalDesbloqueo();
-        mostrarToast(`✅ ${data.nombre} desbloqueado`);
-        const el = document.getElementById(`persona-${pkActual}`);
-        if (el) {
-            el.style.transition = 'opacity 0.3s';
-            el.style.opacity    = '0';
-            setTimeout(() => el.remove(), 300);
+            const el = document.getElementById(`persona-${pkActual}`);
+            if (el) {
+                el.style.transition = 'opacity 0.3s';
+                el.style.opacity    = '0';
+                setTimeout(() => {
+                    el.remove();
+
+                    // Actualizar contador
+                    const contador = document.getElementById('contadorBloqueados');
+                    const nuevo    = Math.max(0, parseInt(contador.innerText) - 1);
+                    contador.innerText = nuevo;
+
+                    // Mostrar vacío si no quedan
+                    if (nuevo <= 0) {
+                        document.getElementById('listaBloqueados').innerHTML = `
+                            <div class="p-16 text-center">
+                                <i class="fa-solid fa-shield-check text-4xl text-slate-200 mb-3 block"></i>
+                                <p class="text-slate-400 font-medium">Lista vacía.</p>
+                            </div>`;
+                    }
+                }, 300);
+            }
+        } else {
+            mostrarToast('❌ Error al desbloquear');
         }
+    } catch (e) {
+        mostrarToast('❌ Error de conexión');
+    } finally {
+        btn.disabled  = false;
+        btn.innerHTML = 'Confirmar';
     }
 }
 
+// ── Toast ─────────────────────────────────────────────
 function mostrarToast(msg) {
-    const t = document.getElementById('toast');
-    t.className = 'fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-white font-bold text-sm bg-green-600';
+    const t     = document.getElementById('toast');
+    const color = msg.startsWith('✅') ? 'bg-green-600' : 'bg-red-600';
+    t.className = `fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-white font-bold text-sm ${color}`;
     t.innerHTML = msg;
     t.classList.remove('hidden');
     setTimeout(() => t.classList.add('hidden'), 3000);
