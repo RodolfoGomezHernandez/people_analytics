@@ -105,7 +105,13 @@ def procesar_fichas(archivo_file):
             nombre_completo = f"{nombres} {paterno} {materno}".strip()
 
             estado_ficha = _limpiar_str(col(row, 'ESTADO FICHA'))
-            activo = estado_ficha.lower() == 'vigente'
+            estado_lower = estado_ficha.lower()
+            if estado_lower == 'vigente':
+                estado = 'VIGENTE'
+            elif estado_lower in ('finiquitado', 'finiquito'):
+                estado = 'FINIQUITADO'
+            else:
+                estado = 'FINIQUITADO'   # cualquier otro estado de GREX = inactivo
 
             estado_rec = _limpiar_str(col(row, 'ESTADO RECOMENDABLE')).upper()
             es_recomendable = estado_rec != 'NO RECOMENDABLE'
@@ -134,7 +140,8 @@ def procesar_fichas(archivo_file):
                     'email'                 : _limpiar_str(col(row, 'EMAIL')) or None,
                     'telefono'              : _limpiar_str(col(row, 'TELÉFONO')) or None,
                     'es_recomendable'       : es_recomendable,
-                    'activo'                : activo,
+                    'estado'     : estado,
+                    'estado_ficha': estado_ficha or None,
                 }
                 obj, created = Colaborador.objects.update_or_create(
                     rut=rut,

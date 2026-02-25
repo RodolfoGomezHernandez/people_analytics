@@ -71,7 +71,7 @@ def api_kpis(request):
 
     # ── Colaboradores vigentes al final del periodo ────────────────────
     vigentes = Colaborador.objects.filter(
-        activo=True,
+        estado='VIGENTE',
         fecha_ingreso__lte=fin
     )
 
