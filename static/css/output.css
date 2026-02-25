@@ -806,6 +806,10 @@ video {
   height: 100vh;
 }
 
+.h-52 {
+  height: 13rem;
+}
+
 .min-h-\[250px\] {
   min-height: 250px;
 }
@@ -2081,6 +2085,11 @@ video {
 .focus\:ring-blue-500:focus {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(59 130 246 / var(--tw-ring-opacity));
+}
+
+.focus\:ring-indigo-500:focus {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(99 102 241 / var(--tw-ring-opacity));
 }
 
 .group:hover .group-hover\:scale-110 {
