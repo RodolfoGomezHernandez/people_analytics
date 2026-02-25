@@ -62,32 +62,134 @@
 
 {% if kpi_vigentes > 0 %}
 <!-- ── Gráficos ──────────────────────────────────────── -->
+<!-- ── Gráficos temporales ──────────────────────────── -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-slate-600 font-bold text-xs uppercase tracking-wider">
+                Dotación Activa por Semana
+            </h3>
+            <button onclick="descargarChart('chartDotacion', 'dotacion_semanal')"
+                class="text-xs text-slate-400 hover:text-indigo-600 transition flex items-center gap-1">
+                <i class="fa-solid fa-download"></i> PNG
+            </button>
+        </div>
+        <div class="h-64 relative"><canvas id="chartDotacion"></canvas></div>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-slate-600 font-bold text-xs uppercase tracking-wider">
+                Contrataciones por Semana
+            </h3>
+            <button onclick="descargarChart('chartContrataciones', 'contrataciones_semana')"
+                class="text-xs text-slate-400 hover:text-indigo-600 transition flex items-center gap-1">
+                <i class="fa-solid fa-download"></i> PNG
+            </button>
+        </div>
+        <div class="h-64 relative"><canvas id="chartContrataciones"></canvas></div>
+    </div>
+</div>
+
+<!-- ── Gráficos demográficos ────────────────────────── -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
 
     <div class="bg-white p-6 rounded-xl shadow-sm">
-        <h3 class="text-slate-600 font-bold mb-4 text-xs uppercase tracking-wider">Distribución por Género</h3>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-slate-600 font-bold text-xs uppercase tracking-wider">Distribución por Género</h3>
+            <button onclick="descargarChart('chartSexo', 'genero')" class="text-xs text-slate-400 hover:text-indigo-600 transition"><i class="fa-solid fa-download"></i></button>
+        </div>
         <canvas id="chartSexo" height="220"></canvas>
     </div>
 
     <div class="bg-white p-6 rounded-xl shadow-sm">
-        <h3 class="text-slate-600 font-bold mb-4 text-xs uppercase tracking-wider">Rango Etario</h3>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-slate-600 font-bold text-xs uppercase tracking-wider">Rango Etario</h3>
+            <button onclick="descargarChart('chartEdad', 'rango_etario')" class="text-xs text-slate-400 hover:text-indigo-600 transition"><i class="fa-solid fa-download"></i></button>
+        </div>
         <canvas id="chartEdad" height="220"></canvas>
     </div>
 
     <div class="bg-white p-6 rounded-xl shadow-sm">
-        <h3 class="text-slate-600 font-bold mb-4 text-xs uppercase tracking-wider">Top Nacionalidades</h3>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-slate-600 font-bold text-xs uppercase tracking-wider">Top Nacionalidades</h3>
+            <button onclick="descargarChart('chartNacionalidad', 'nacionalidades')" class="text-xs text-slate-400 hover:text-indigo-600 transition"><i class="fa-solid fa-download"></i></button>
+        </div>
         <canvas id="chartNacionalidad" height="220"></canvas>
     </div>
 </div>
 
 <div class="bg-white p-6 rounded-xl shadow-sm mb-8">
-    <h3 class="text-slate-600 font-bold mb-4 text-xs uppercase tracking-wider">Distribución por Comuna</h3>
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-slate-600 font-bold text-xs uppercase tracking-wider">Distribución por Comuna</h3>
+        <button onclick="descargarChart('chartComuna', 'comunas')" class="text-xs text-slate-400 hover:text-indigo-600 transition flex items-center gap-1"><i class="fa-solid fa-download"></i> PNG</button>
+    </div>
     <div class="h-64">
         <canvas id="chartComuna"></canvas>
     </div>
 </div>
 
 <script>
+// ── Utilidad descarga ────────────────────────────────
+function descargarChart(canvasId, nombre) {
+    const link = document.createElement('a');
+    link.download = `${nombre}_${new Date().toISOString().slice(0,10)}.png`;
+    link.href = document.getElementById(canvasId).toDataURL('image/png');
+    link.click();
+}
+
+    // ── Dotación activa semanal ──────────────────────────
+    new Chart(document.getElementById('chartDotacion'), {
+        type: 'line',
+        data: {
+            labels: {{ chart_dotacion_labels|safe }},
+            datasets: [{
+                label: 'Personas activas',
+                data: {{ chart_dotacion_values|safe }},
+                borderColor: '#6366F1',
+                backgroundColor: 'rgba(99,102,241,0.08)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 2,
+                pointHoverRadius: 5,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { maxTicksLimit: 12, font: { size: 10 } }, grid: { display: false } },
+                y: { beginAtZero: false, ticks: { font: { size: 10 } } }
+            }
+        }
+    });
+
+    // ── Contrataciones por semana ────────────────────────
+    new Chart(document.getElementById('chartContrataciones'), {
+        type: 'bar',
+        data: {
+            labels: {{ chart_contrataciones_labels|safe }},
+            datasets: [{
+                label: 'Nuevas contrataciones',
+                data: {{ chart_contrataciones_values|safe }},
+                backgroundColor: '#10B981',
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { maxTicksLimit: 12, font: { size: 10 } }, grid: { display: false } },
+                y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } } }
+            }
+        }
+    });
+
+    // ── Género ───────────────────────────────────────────
     new Chart(document.getElementById('chartSexo'), {
         type: 'doughnut',
         data: {
@@ -98,6 +200,7 @@
         options: { plugins: { legend: { position: 'bottom' } }, responsive: true }
     });
 
+    // ── Edad ─────────────────────────────────────────────
     new Chart(document.getElementById('chartEdad'), {
         type: 'bar',
         data: {
@@ -108,16 +211,18 @@
         options: { responsive: true, plugins: { legend: { display: false } } }
     });
 
+    // ── Nacionalidad ─────────────────────────────────────
     new Chart(document.getElementById('chartNacionalidad'), {
         type: 'pie',
         data: {
             labels: {{ chart_nacionalidad_labels|safe }},
             datasets: [{ data: {{ chart_nacionalidad_values|safe }},
-                backgroundColor: ['#F59E0B', '#EF4444', '#10B981', '#6366F1', '#6B7280', '#3B82F6'] }]
+                backgroundColor: ['#F59E0B','#EF4444','#10B981','#6366F1','#6B7280','#3B82F6'] }]
         },
         options: { plugins: { legend: { position: 'bottom' } }, responsive: true }
     });
 
+    // ── Comunas ──────────────────────────────────────────
     new Chart(document.getElementById('chartComuna'), {
         type: 'bar',
         data: {
