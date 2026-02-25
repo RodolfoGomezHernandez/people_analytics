@@ -8,6 +8,22 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+<script>
+function toggleMenu(id) {
+    const menu = document.getElementById(id);
+    const icon = document.getElementById('icon' + id.replace('menu', ''));
+    menu.classList.toggle('hidden');
+    if (icon) icon.classList.toggle('rotate-180');
+}
+
+// Mantener abierto el menú activo al cargar
+document.addEventListener('DOMContentLoaded', function () {
+    {% if 'dotacion' in request.path %}
+    const icon = document.getElementById('iconDotacion');
+    if (icon) icon.classList.add('rotate-180');
+    {% endif %}
+});
+</script>
 <body class="bg-slate-100 font-sans">
 <div class="flex h-screen">
 
@@ -21,34 +37,76 @@
         <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
 
             <a href="{% url 'dashboard' %}"
-               class="flex items-center gap-3 p-3 rounded-lg transition
-               {% if request.resolver_match.url_name == 'dashboard' %}bg-blue-600 text-white shadow-lg shadow-blue-900/50
-               {% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+            class="flex items-center gap-3 p-3 rounded-lg transition
+            {% if request.resolver_match.url_name == 'dashboard' %}bg-blue-600 text-white shadow-lg shadow-blue-900/50
+            {% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-gauge w-4"></i>
                 <span>Dashboard</span>
             </a>
 
-            <a href="{% url 'dotacion_index' %}"
-               class="flex items-center gap-3 p-3 rounded-lg transition
-               {% if 'dotacion' in request.path %}bg-blue-600 text-white shadow-lg shadow-blue-900/50
-               {% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
-                <i class="fa-solid fa-users w-4"></i>
-                <span>Dotación</span>
-            </a>
+            <!-- DOTACIÓN con submenú -->
+            <div>
+                <button onclick="toggleMenu('menuDotacion')"
+                    class="w-full flex items-center gap-3 p-3 rounded-lg transition
+                    {% if 'dotacion' in request.path %}bg-blue-600 text-white shadow-lg shadow-blue-900/50
+                    {% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-users w-4"></i>
+                    <span class="flex-1 text-left">Dotación</span>
+                    <i class="fa-solid fa-chevron-down text-xs transition-transform" id="iconDotacion"></i>
+                </button>
+                <div id="menuDotacion" class="{% if 'dotacion' not in request.path %}hidden{% endif %} ml-4 mt-1 space-y-1">
+                    <a href="{% url 'dotacion_index' %}"
+                    class="flex items-center gap-3 p-2.5 rounded-lg transition text-sm
+                    {% if request.resolver_match.url_name == 'dotacion_index' %}bg-slate-700 text-white
+                    {% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+                        <i class="fa-solid fa-chart-pie w-4"></i>
+                        <span>Analytics</span>
+                    </a>
+                    {% if request.user.is_staff or request.user.is_superuser %}
+                    <a href="{% url 'dotacion_estados' %}"
+                    class="flex items-center gap-3 p-2.5 rounded-lg transition text-sm
+                    {% if request.resolver_match.url_name == 'dotacion_estados' %}bg-slate-700 text-white
+                    {% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+                        <i class="fa-solid fa-shield-halved w-4"></i>
+                        <span>Gestión de Estados</span>
+                    </a>
+                    {% if request.user.is_staff or request.user.is_superuser %}
+                    <a href="{% url 'dotacion_bloqueados' %}"
+                        class="flex items-center gap-3 p-2.5 rounded-lg transition text-sm
+                        {% if request.resolver_match.url_name == 'dotacion_bloqueados' %}bg-slate-700 text-white
+                        {% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+                            <i class="fa-solid fa-user-slash w-4"></i>
+                            <span>Lista Bloqueados</span>
+                        </a>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
 
             <a href="{% url 'asistencia_index' %}"
-               class="flex items-center gap-3 p-3 rounded-lg transition
-               {% if 'asistencia' in request.path %}bg-blue-600 text-white shadow-lg shadow-blue-900/50
-               {% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+            class="flex items-center gap-3 p-3 rounded-lg transition
+            {% if 'asistencia' in request.path %}bg-blue-600 text-white shadow-lg shadow-blue-900/50
+            {% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-clock w-4"></i>
                 <span>Asistencia</span>
             </a>
 
+            <!-- ACCESOS -->
+            {% if request.user|has_group:"Guardias" or request.user.is_staff or request.user.is_superuser %}
+            <a href="{% url 'accesos_control' %}"
+            class="flex items-center gap-3 p-3 rounded-lg transition
+            {% if 'accesos' in request.path %}bg-blue-600 text-white shadow-lg shadow-blue-900/50
+            {% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+                <i class="fa-solid fa-door-open w-4"></i>
+                <span>Accesos</span>
+            </a>
+            {% endif %}
+
             {% if request.user|has_group:"Transporte" or request.user|has_group:"Guardias" or request.user.is_superuser %}
             <a href="{% url 'transporte_home' %}"
-               class="flex items-center gap-3 p-3 rounded-lg transition
-               {% if 'transporte' in request.path %}bg-blue-600 text-white shadow-lg shadow-blue-900/50
-               {% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+            class="flex items-center gap-3 p-3 rounded-lg transition
+            {% if 'transporte' in request.path %}bg-blue-600 text-white shadow-lg shadow-blue-900/50
+            {% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-bus w-4"></i>
                 <span>Transporte</span>
             </a>
@@ -56,9 +114,9 @@
 
             {% if request.user|has_group:"Reclutamiento" or request.user.is_superuser %}
             <a href="{% url 'crear_solicitud' %}"
-               class="flex items-center gap-3 p-3 rounded-lg transition
-               {% if 'reclutamiento' in request.path %}bg-blue-600 text-white shadow-lg shadow-blue-900/50
-               {% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+            class="flex items-center gap-3 p-3 rounded-lg transition
+            {% if 'reclutamiento' in request.path %}bg-blue-600 text-white shadow-lg shadow-blue-900/50
+            {% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-user-plus w-4"></i>
                 <span>Reclutamiento</span>
             </a>

@@ -292,7 +292,6 @@ def cambiar_estado(request, rut):
 
 @login_required
 def api_buscar(request):
-    """Busca colaboradores por RUT o nombre para la gestión de estados."""
     if not request.user.is_staff and not request.user.is_superuser:
         return JsonResponse({'error': '403'}, status=403)
 
@@ -303,11 +302,69 @@ def api_buscar(request):
     colaboradores = (
         Colaborador.objects
         .filter(
-            db_models.Q(rut__icontains=q) |
-            db_models.Q(nombre_completo__icontains=q)
+            Q(rut__icontains=q) |
+            Q(nombre_completo__icontains=q)
         )
         .values('rut', 'nombre_completo', 'cargo', 'centro_costo', 'estado', 'motivo_bloqueo')
         [:10]
     )
 
-    return JsonResponse({'resultados': list(colaboradores)})
+    return JsonResponse({'resultados': list(colaboradores)}) 
+
+@login_required
+def lista_bloqueados(request):
+    if not request.user.is_staff and not request.user.is_superuser:
+        return redirect('dotacion_index')
+
+    from .models import PersonaBloqueada
+
+    if request.method == 'POST':
+        rut    = request.POST.get('rut', '').strip()
+        nombre = request.POST.get('nombre', '').strip().upper()
+        motivo = request.POST.get('motivo', '').strip()
+        foto   = request.FILES.get('foto')
+
+        if rut and nombre and motivo:
+            # Formatear RUT
+            rut_limpio = rut.replace('.', '').replace('-', '').upper()
+            cuerpo, dv = rut_limpio[:-1], rut_limpio[-1]
+            try:
+                rut = f"{int(cuerpo):,}".replace(',', '.') + '-' + dv
+            except ValueError:
+                pass
+
+            PersonaBloqueada.objects.update_or_create(
+                rut      = rut,
+                defaults = {
+                    'nombre_completo': nombre,
+                    'motivo'         : motivo,
+                    'foto'           : foto,
+                    'bloqueado_por'  : request.user,
+                    'activo'         : True,
+                }
+            )
+            messages.success(request, f'✅ {nombre} agregado a la lista de bloqueados.')
+            return redirect('dotacion_bloqueados')
+
+    bloqueados = PersonaBloqueada.objects.filter(activo=True)
+    return render(request, 'dotacion/lista_bloqueados.html', {
+        'bloqueados': bloqueados,
+    })
+
+
+@login_required
+def desbloquear_persona(request, pk):
+    if not request.user.is_staff and not request.user.is_superuser:
+        return JsonResponse({'ok': False}, status=403)
+
+    from .models import PersonaBloqueada
+    persona = get_object_or_404(PersonaBloqueada, pk=pk)
+    motivo  = request.POST.get('motivo', 'Sin motivo')
+
+    persona.activo = False
+    persona.save()
+
+    return JsonResponse({
+        'ok'    : True,
+        'nombre': persona.nombre_completo,
+    })

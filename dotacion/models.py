@@ -113,3 +113,28 @@ class HistorialEstado(models.Model):
         ordering            = ['-fecha']
         verbose_name        = "Historial de Estado"
         verbose_name_plural = "Historial de Estados"
+
+
+class PersonaBloqueada(models.Model):
+    """
+    Lista negra independiente de dotación.
+    Personas que no pueden ingresar aunque no estén en GREX.
+    """
+    rut             = models.CharField(max_length=20, unique=True)
+    nombre_completo = models.CharField(max_length=255)
+    motivo          = models.TextField()
+    foto            = models.ImageField(upload_to='bloqueados/', null=True, blank=True)
+    fecha_bloqueo   = models.DateField(auto_now_add=True)
+    bloqueado_por   = models.ForeignKey(
+        User, on_delete=models.SET_NULL,
+        null=True, related_name='personas_bloqueadas_registradas'
+    )
+    activo          = models.BooleanField(default=True)  # False = desbloqueado
+
+    def __str__(self):
+        return f"{self.nombre_completo} ({self.rut})"
+
+    class Meta:
+        ordering            = ['-fecha_bloqueo']
+        verbose_name        = "Persona Bloqueada"
+        verbose_name_plural = "Lista de Bloqueados"

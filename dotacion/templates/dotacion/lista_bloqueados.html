@@ -1,0 +1,216 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Lista de Bloqueados | Aurora HR{% endblock %}
+{% block header_title %}Lista de Bloqueados{% endblock %}
+
+{% block content %}
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+    <!-- ── Formulario agregar ─────────────────────── -->
+    <div class="xl:col-span-1">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden sticky top-6">
+            <div class="bg-red-700 px-6 py-4">
+                <h2 class="text-white font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-user-slash"></i> Agregar Bloqueado
+                </h2>
+                <p class="text-red-200 text-xs mt-1">Esta persona no podrá ingresar a las instalaciones.</p>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" class="p-6 space-y-4">
+                {% csrf_token %}
+
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase block mb-1">RUT *</label>
+                    <input type="text" name="rut" placeholder="Ej: 12.345.678-9"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition"
+                        required>
+                </div>
+
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Nombre Completo *</label>
+                    <input type="text" name="nombre" placeholder="Apellido Apellido Nombre"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition"
+                        required>
+                </div>
+
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Motivo *</label>
+                    <textarea name="motivo" rows="3"
+                        placeholder="Describe el motivo del bloqueo..."
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition resize-none"
+                        required></textarea>
+                </div>
+
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase block mb-1">
+                        Foto <span class="text-slate-400 font-normal">(opcional)</span>
+                    </label>
+                    <input type="file" name="foto" accept="image/*"
+                        class="w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:font-bold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
+                </div>
+
+                <button type="submit"
+                    class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-ban"></i> Agregar a Lista Negra
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── Lista bloqueados ───────────────────────── -->
+    <div class="xl:col-span-2">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse inline-block"></span>
+                    Personas Bloqueadas
+                    <span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                        {{ bloqueados.count }}
+                    </span>
+                </h3>
+            </div>
+
+            <div class="divide-y divide-slate-100">
+                {% for p in bloqueados %}
+                <div class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition" id="persona-{{ p.pk }}">
+
+                    <!-- Foto o iniciales -->
+                    <div class="flex-shrink-0">
+                        {% if p.foto %}
+                            <img src="{{ p.foto.url }}" alt="{{ p.nombre_completo }}"
+                                class="w-12 h-12 rounded-full object-cover border-2 border-red-200">
+                        {% else %}
+                            <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-black text-lg border-2 border-red-200">
+                                {{ p.nombre_completo|make_list|first }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Info -->
+                    <div class="flex-1 min-w-0">
+                        <p class="font-bold text-slate-800">{{ p.nombre_completo }}</p>
+                        <p class="text-xs text-slate-400 mt-0.5">{{ p.rut }}</p>
+                        <p class="text-xs text-red-600 mt-1 line-clamp-2">
+                            <i class="fa-solid fa-circle-exclamation mr-1"></i>{{ p.motivo }}
+                        </p>
+                    </div>
+
+                    <!-- Meta -->
+                    <div class="text-right flex-shrink-0">
+                        <p class="text-xs text-slate-400">{{ p.fecha_bloqueo|date:"d/m/Y" }}</p>
+                        <p class="text-xs text-slate-400 mt-0.5">
+                            por {{ p.bloqueado_por.get_full_name|default:p.bloqueado_por.username|default:"—" }}
+                        </p>
+                        <button onclick="desbloquear({{ p.pk }}, '{{ p.nombre_completo }}')"
+                            class="mt-2 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 px-3 py-1 rounded-lg text-xs font-bold transition">
+                            <i class="fa-solid fa-lock-open"></i> Desbloquear
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-16 text-center">
+                    <i class="fa-solid fa-shield-check text-4xl text-slate-200 mb-3"></i>
+                    <p class="text-slate-400 font-medium">Lista vacía.</p>
+                    <p class="text-slate-400 text-sm mt-1">Agrega personas usando el formulario.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal confirmación desbloqueo ─────────────────── -->
+<div id="modalDesbloqueo" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden">
+        <div class="bg-green-50 border-b border-green-100 px-6 py-4">
+            <h3 class="font-bold text-green-700 text-lg" id="modalNombre"></h3>
+            <p class="text-sm text-slate-500 mt-1">Confirma el desbloqueo de esta persona.</p>
+        </div>
+        <div class="p-6 space-y-4">
+            <div>
+                <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Motivo *</label>
+                <textarea id="motivoDesbloqueo" rows="2"
+                    placeholder="Motivo del desbloqueo..."
+                    class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none resize-none"></textarea>
+                <p id="errorDesbloqueo" class="hidden text-red-500 text-xs mt-1">El motivo es obligatorio.</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="cerrarModalDesbloqueo()"
+                    class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-xl transition">
+                    Cancelar
+                </button>
+                <button id="btnDesbloquear" onclick="confirmarDesbloqueo()"
+                    class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl transition">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Toast ─────────────────────────────────────────── -->
+<div id="toast" class="hidden fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-white font-bold text-sm"></div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+let pkActual = null;
+
+function desbloquear(pk, nombre) {
+    pkActual = pk;
+    document.getElementById('modalNombre').innerText = nombre;
+    document.getElementById('motivoDesbloqueo').value = '';
+    document.getElementById('errorDesbloqueo').classList.add('hidden');
+    document.getElementById('modalDesbloqueo').classList.remove('hidden');
+}
+
+function cerrarModalDesbloqueo() {
+    document.getElementById('modalDesbloqueo').classList.add('hidden');
+    pkActual = null;
+}
+
+async function confirmarDesbloqueo() {
+    const motivo = document.getElementById('motivoDesbloqueo').value.trim();
+    if (!motivo) {
+        document.getElementById('errorDesbloqueo').classList.remove('hidden');
+        return;
+    }
+
+    const btn = document.getElementById('btnDesbloquear');
+    btn.disabled  = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+    const fd = new FormData();
+    fd.append('motivo', motivo);
+    fd.append('csrfmiddlewaretoken', CSRF);
+
+    const res  = await fetch(`/dotacion/bloqueados/desbloquear/${pkActual}/`, {
+        method: 'POST', body: fd
+    });
+    const data = await res.json();
+
+    btn.disabled  = false;
+    btn.innerHTML = 'Confirmar';
+
+    if (data.ok) {
+        cerrarModalDesbloqueo();
+        mostrarToast(`✅ ${data.nombre} desbloqueado`);
+        const el = document.getElementById(`persona-${pkActual}`);
+        if (el) {
+            el.style.transition = 'opacity 0.3s';
+            el.style.opacity    = '0';
+            setTimeout(() => el.remove(), 300);
+        }
+    }
+}
+
+function mostrarToast(msg) {
+    const t = document.getElementById('toast');
+    t.className = 'fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-white font-bold text-sm bg-green-600';
+    t.innerHTML = msg;
+    t.classList.remove('hidden');
+    setTimeout(() => t.classList.add('hidden'), 3000);
+}
+</script>
+
+{% endblock %}
