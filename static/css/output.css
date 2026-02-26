@@ -1864,11 +1864,6 @@ video {
   letter-spacing: 0.1em;
 }
 
-.text-blue-400 {
-  --tw-text-opacity: 1;
-  color: rgb(96 165 250 / var(--tw-text-opacity));
-}
-
 .text-blue-500 {
   --tw-text-opacity: 1;
   color: rgb(59 130 246 / var(--tw-text-opacity));
@@ -2575,6 +2570,10 @@ video {
 
   .md\:col-span-2 {
     grid-column: span 2 / span 2;
+  }
+
+  .md\:ml-64 {
+    margin-left: 16rem;
   }
 
   .md\:block {

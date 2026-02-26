@@ -26,3 +26,6 @@ media/
 
 node_modules/
 >>>>>>> feat/transporte
+.env
+staticfiles/
+media/
