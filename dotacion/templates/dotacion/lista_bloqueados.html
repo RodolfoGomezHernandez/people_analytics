@@ -89,14 +89,22 @@
     <!-- ── Lista bloqueados ───────────────────────────── -->
     <div class="xl:col-span-2">
         <div class="bg-white rounded-xl shadow-sm border border-slate-200">
-            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+            <!-- Header con buscador -->
+            <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <h3 class="font-bold text-slate-700 flex items-center gap-2">
                     <span class="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse inline-block"></span>
                     Personas Bloqueadas
                     <span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full" id="contadorBloqueados">
-                        {{ bloqueados.count }}
+                        {{ total }}
                     </span>
                 </h3>
+                <!-- Buscador en tiempo real -->
+                <div class="relative w-full sm:w-72">
+                    <input type="text" id="inputFiltro" value="{{ q }}"
+                        placeholder="Buscar por nombre, RUT o motivo..."
+                        class="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-400 outline-none transition">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                </div>
             </div>
 
             <div class="divide-y divide-slate-100" id="listaBloqueados">
@@ -145,6 +153,29 @@
                 {% endfor %}
             </div>
         </div>
+        <!-- Paginación -->
+        {% if bloqueados.has_other_pages %}
+        <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+            <p class="text-xs text-slate-400">
+                Página {{ bloqueados.number }} de {{ bloqueados.paginator.num_pages }}
+                · {{ bloqueados.paginator.count }} registros
+            </p>
+            <div class="flex gap-1">
+                {% if bloqueados.has_previous %}
+                <a href="?page={{ bloqueados.previous_page_number }}{% if q %}&q={{ q }}{% endif %}"
+                    class="px-3 py-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">
+                    ← Anterior
+                </a>
+                {% endif %}
+                {% if bloqueados.has_next %}
+                <a href="?page={{ bloqueados.next_page_number }}{% if q %}&q={{ q }}{% endif %}"
+                    class="px-3 py-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">
+                    Siguiente →
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -318,6 +349,32 @@ function mostrarToast(msg) {
     t.classList.remove('hidden');
     setTimeout(() => t.classList.add('hidden'), 3000);
 }
+
+// ── Filtro en tiempo real ─────────────────────────────
+let filtroTimer = null;
+const inputFiltro = document.getElementById('inputFiltro');
+
+// Restaurar foco si hay búsqueda activa
+document.addEventListener('DOMContentLoaded', function () {
+    if (inputFiltro.value.trim() !== '') {
+        inputFiltro.focus();
+        // Colocar cursor al final
+        const len = inputFiltro.value.length;
+        inputFiltro.setSelectionRange(len, len);
+    }
+});
+
+inputFiltro.addEventListener('input', function () {
+    clearTimeout(filtroTimer);
+    const q = this.value.trim();
+    filtroTimer = setTimeout(() => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('q', q);
+        url.searchParams.delete('page');
+        window.location.href = url.toString();
+    }, 400);
+});
+
 </script>
 
 {% endblock %}

@@ -184,13 +184,13 @@ def api_buscar(request):
     )
     return JsonResponse({'resultados': list(colaboradores)})
 
-
 @login_required
 def lista_bloqueados(request):
     if not request.user.is_staff and not request.user.is_superuser:
         return redirect('dotacion_index')
 
     from .models import PersonaBloqueada
+    from django.core.paginator import Paginator
 
     if request.method == 'POST':
         rut    = request.POST.get('rut', '').strip()
@@ -219,8 +219,26 @@ def lista_bloqueados(request):
             messages.success(request, f'✅ {nombre} agregado a la lista de bloqueados.')
             return redirect('dotacion_bloqueados')
 
-    bloqueados = PersonaBloqueada.objects.filter(activo=True)
-    return render(request, 'dotacion/lista_bloqueados.html', {'bloqueados': bloqueados})
+    q          = request.GET.get('q', '').strip()
+    qs         = PersonaBloqueada.objects.filter(activo=True).order_by('-fecha_bloqueo')
+
+    if q:
+        qs = qs.filter(
+            Q(nombre_completo__icontains=q) |
+            Q(rut__icontains=q) |
+            Q(motivo__icontains=q)
+        )
+
+    paginator = Paginator(qs, 20)
+    page      = request.GET.get('page', 1)
+    bloqueados = paginator.get_page(page)
+
+    return render(request, 'dotacion/lista_bloqueados.html', {
+        'bloqueados'   : bloqueados,
+        'q'            : q,
+        'total'        : PersonaBloqueada.objects.filter(activo=True).count(),
+    })
+
 
 
 @login_required
